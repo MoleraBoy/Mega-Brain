@@ -1,0 +1,1 @@
+# Mega Brain v4 — Atualizado com Backup, Thumbnails e Gestão Mobile.
