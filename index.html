@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mega Brain • Hub Pessoal & Segundo Cérebro</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.json" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">🧠</span>
+        <div>
+          <h1>Mega Brain</h1>
+          <small id="brain-status">Aprendizado ativo • 0 padrões mapeados</small>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <input type="search" id="search-input" placeholder="Buscar notas, #tags ou pastas..." />
+        <button id="btn-new-folder" class="btn secondary">+ Pasta Privada</button>
+        <button id="btn-new-note" class="btn primary">+ Nova Nota</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="sidebar">
+        <section>
+          <h3>Visões</h3>
+          <ul id="nav-views" class="nav-list">
+            <li data-view="all" class="active">📚 Todas as Notas</li>
+            <li data-view="public">🌐 Área Geral</li>
+            <li data-view="private">🔒 Pastas Privadas</li>
+            <li data-view="insights">✨ Aprendizado de Tags</li>
+          </ul>
+        </section>
+
+        <section>
+          <div class="section-header">
+            <h3>Pastas & Cofres</h3>
+          </div>
+          <ul id="folder-list" class="nav-list"></ul>
+        </section>
+
+        <section>
+          <h3>Tags Aprendidas</h3>
+          <div id="tag-cloud" class="tag-cloud"></div>
+        </section>
+      </aside>
+
+      <section class="content-area">
+        <div id="insights-banner" class="insights-card hidden"></div>
+        <div id="notes-grid" class="notes-grid"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal Nova / Editar Nota -->
+  <dialog id="note-modal" class="modal">
+    <form id="note-form" method="dialog">
+      <h2 id="note-modal-title">Nova Nota</h2>
+      <input type="hidden" id="note-id" />
+      <label>Título
+        <input type="text" id="note-title" required placeholder="Ex: Ideia de arquitetura..." />
+      </label>
+      <label>Pasta
+        <select id="note-folder"></select>
+      </label>
+      <label>Conteúdo
+        <textarea id="note-content" rows="7" required placeholder="Escreva aqui... O Mega Brain sugerirá tags automaticamente."></textarea>
+      </label>
+      <div class="tag-suggestion-box">
+        <span>Sugestões do Mega Brain:</span>
+        <div id="suggested-tags" class="tag-cloud"></div>
+      </div>
+      <label>Tags (separadas por vírgula)
+        <input type="text" id="note-tags" placeholder="projeto, ideia, estudo" />
+      </label>
+      <div class="modal-actions">
+        <button type="button" id="btn-cancel-note" class="btn secondary">Cancelar</button>
+        <button type="submit" class="btn primary">Salvar & Treinar IA</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Modal Nova Pasta Privada -->
+  <dialog id="folder-modal" class="modal">
+    <form id="folder-form" method="dialog">
+      <h2>Criar Pasta</h2>
+      <label>Nome da Pasta
+        <input type="text" id="folder-name" required placeholder="Ex: Diário Pessoal, Finanças..." />
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="folder-private" checked />
+        <span>Pasta Privada (protegida por PIN)</span>
+      </label>
+      <label id="pin-wrapper">PIN de Acesso (4+ dígitos)
+        <input type="password" id="folder-pin" minlength="4" placeholder="••••" />
+      </label>
+      <div class="modal-actions">
+        <button type="button" id="btn-cancel-folder" class="btn secondary">Cancelar</button>
+        <button type="submit" class="btn primary">Criar Pasta</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Modal Desbloquear Pasta Privada -->
+  <dialog id="unlock-modal" class="modal">
+    <form id="unlock-form" method="dialog">
+      <h2>🔒 Pasta Privada</h2>
+      <p id="unlock-folder-label">Digite o PIN para desbloquear esta pasta.</p>
+      <input type="hidden" id="unlock-folder-id" />
+      <input type="password" id="unlock-pin-input" required placeholder="Digite o PIN" />
+      <p id="unlock-error" class="error-text hidden">PIN incorreto.</p>
+      <div class="modal-actions">
+        <button type="button" id="btn-cancel-unlock" class="btn secondary">Cancelar</button>
+        <button type="submit" class="btn primary">Desbloquear</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="brain-engine.js"></script>
+  <script src="vault-security.js"></script>
+  <script src="storage.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
