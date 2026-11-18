@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Landing Page - Página Única</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="navbar">
+        <div class="container nav-content">
+            <a href="#inicio" class="logo">Minha<span>Marca</span></a>
+            <nav>
+                <ul class="nav-links" id="nav-links">
+                    <li><a href="#inicio">Início</a></li>
+                    <li><a href="#recursos">Recursos</a></li>
+                    <li><a href="#sobre">Sobre</a></li>
+                    <li><a href="#contato">Contato</a></li>
+                </ul>
+            </nav>
+            <button class="menu-toggle" id="menu-toggle" aria-label="Abrir menu">&#9776;</button>
+        </div>
+    </header>
+
+    <main>
+        <section id="inicio" class="hero">
+            <div class="container hero-content">
+                <h1>Soluções Modernas para o seu Negócio</h1>
+                <p>Estrutura limpa, rápida e responsiva em página única, pronta para ser personalizada e publicada.</p>
+                <a href="#contato" class="btn btn-primary">Começar Agora</a>
+            </div>
+        </section>
+
+        <section id="recursos" class="section">
+            <div class="container">
+                <h2 class="section-title">Nossos Recursos</h2>
+                <div class="grid-3">
+                    <div class="card">
+                        <h3>Design Responsivo</h3>
+                        <p>Adapta-se perfeitamente a qualquer tamanho de tela, de smartphones a monitores ultrawide.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Alta Performance</h3>
+                        <p>Código otimizado sem dependências pesadas para garantir carregamento instantâneo.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Fácil Manutenção</h3>
+                        <p>Arquivos organizados na raiz do projeto (HTML, CSS e JS) para edição direta e descomplicada.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="sobre" class="section section-alt">
+            <div class="container about-content">
+                <h2 class="section-title">Sobre o Projeto</h2>
+                <p>Este modelo foi desenvolvido com foco em simplicidade, semântica HTML5, variáveis CSS modernas e JavaScript puro (Vanilla JS) para interatividade leve e eficiente.</p>
+            </div>
+        </section>
+
+        <section id="contato" class="section">
+            <div class="container">
+                <h2 class="section-title">Entre em Contato</h2>
+                <form id="contact-form" class="contact-form">
+                    <div class="form-group">
+                        <label for="nome">Nome</label>
+                        <input type="text" id="nome" name="nome" placeholder="Seu nome completo" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">E-mail</label>
+                        <input type="email" id="email" name="email" placeholder="seu@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="mensagem">Mensagem</label>
+                        <textarea id="mensagem" name="mensagem" rows="4" placeholder="Como podemos ajudar?" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Enviar Mensagem</button>
+                    <p id="form-feedback" class="feedback" aria-live="polite"></p>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; <span id="ano-atual"></span> MinhaMarca. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
