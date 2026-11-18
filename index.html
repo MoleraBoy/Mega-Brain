@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mega Brain v3 — Segundo Cérebro & Hub Pessoal (Material Design 3)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            md3: {
+              primary: '#6750A4',
+              onPrimary: '#FFFFFF',
+              primaryContainer: '#EADDFF',
+              onPrimaryContainer: '#21005D',
+              secondary: '#625B71',
+              onSecondary: '#FFFFFF',
+              secondaryContainer: '#E8DEF8',
+              onSecondaryContainer: '#1D192B',
+              tertiary: '#7D5260',
+              tertiaryContainer: '#FFD8E4',
+              onTertiaryContainer: '#31111D',
+              surface: '#FEF7FF',
+              surfaceContainerLowest: '#FFFFFF',
+              surfaceContainerLow: '#F7F2FA',
+              surfaceContainer: '#F3EDF7',
+              surfaceContainerHigh: '#ECE6F0',
+              surfaceContainerHighest: '#E6E0E9',
+              onSurface: '#1D1B20',
+              onSurfaceVariant: '#49454F',
+              outline: '#79747E',
+              outlineVariant: '#CAC4D0'
+            }
+          },
+          borderRadius: {
+            'md3-sm': '8px',
+            'md3-md': '12px',
+            'md3-lg': '16px',
+            'md3-xl': '28px',
+            'md3-full': '9999px'
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    :root { color-scheme: light; }
+    body {
+      background-color: #FEF7FF;
+      color: #1D1B20;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .md3-card {
+      background-color: #FFFFFF;
+      border: 1px solid #CAC4D0;
+      border-radius: 16px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      transition: box-shadow 0.2s ease, transform 0.15s ease, border-color 0.2s ease;
+    }
+    .md3-card:hover {
+      box-shadow: 0 4px 12px rgba(103, 80, 164, 0.12);
+      border-color: #6750A4;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <!-- Barra Superior Material Design 3 -->
+  <header class="sticky top-0 z-30 border-b border-md3-outlineVariant bg-md3-surface/95 backdrop-blur px-4 py-3">
+    <div class="mx-auto max-w-7xl flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5">
+        <div class="rounded-md3-md bg-md3-primary p-2 text-md3-onPrimary font-bold text-lg leading-none">
+          🧠
+        </div>
+        <div>
+          <h1 class="text-base font-bold tracking-tight text-md3-onSurface">Mega Brain v3</h1>
+          <p class="text-[11px] text-md3-onSurfaceVariant">Segundo Cérebro • Material Design 3 (Versão HTML Direta)</p>
+        </div>
+      </div>
+
+      <nav id="top-nav" class="flex flex-wrap items-center gap-1.5"></nav>
+    </div>
+  </header>
+
+  <!-- Toast de Notificação -->
+  <div id="toast-box" class="hidden fixed bottom-5 right-5 z-50 rounded-md3-lg bg-md3-onSurface text-md3-surface px-4 py-3 text-xs font-medium shadow-xl"></div>
+
+  <!-- Conteúdo Principal -->
+  <main id="main-content" class="mx-auto w-full max-w-7xl flex-1 p-4 sm:p-6"></main>
+
+  <!-- Modal Novo / Editar Link -->
+  <div id="link-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
+    <div class="w-full max-w-xl rounded-md3-xl bg-md3-surfaceContainerLowest border border-md3-outlineVariant p-6 shadow-xl space-y-4 my-8">
+      <div class="flex items-center justify-between border-b border-md3-outlineVariant pb-3">
+        <h3 id="link-modal-title" class="text-base font-semibold text-md3-onSurface">Novo Link ou Mídia (Aprendizado Contínuo)</h3>
+        <button type="button" onclick="closeLinkModal()" class="p-1 text-md3-onSurfaceVariant text-lg leading-none">&times;</button>
+      </div>
+      <form id="link-form" class="space-y-3.5 text-xs">
+        <input type="hidden" id="link-id" />
+        <div>
+          <label class="block font-medium text-md3-onSurfaceVariant mb-1">URL do Link / Mídia *</label>
+          <div class="flex gap-2">
+            <input type="url" id="link-url" required placeholder="https://..." class="flex-1 rounded-md3-md border border-md3-outline px-3 py-2 text-sm" />
+            <button type="button" onclick="autoAnalyzeLink()" class="rounded-md3-full bg-md3-secondaryContainer px-3.5 py-2 font-medium text-md3-onSecondaryContainer hover:opacity-90">
+              ✨ Auto-Preencher
+            </button>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-md3-onSurfaceVariant mb-1">Título</label>
+            <input type="text" id="link-title" placeholder="Título do conteúdo" class="w-full rounded-md3-md border border-md3-outline px-3 py-2" />
+          </div>
+          <div>
+            <label class="block font-medium text-md3-onSurfaceVariant mb-1">Tipo de Mídia</label>
+            <select id="link-media-type" class="w-full rounded-md3-md border border-md3-outline bg-md3-surface px-3 py-2">
+              <option value="article">Artigo / Leitura</option>
+              <option value="video">Vídeo</option>
+              <option value="document">Documento / PDF</option>
+              <option value="tool">Ferramenta / Site</option>
+              <option value="image">Imagem / Referência</option>
+              <option value="audio">Áudio / Podcast</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-md3-onSurfaceVariant mb-1">Tema / Assunto</label>
+            <input type="text" id="link-theme" placeholder="Ex: React, Design, Finanças..." class="w-full rounded-md3-md border border-md3-outline px-3 py-2" />
+          </div>
+          <div>
+            <label class="block font-medium text-md3-onSurfaceVariant mb-1">Pasta / Subpasta</label>
+            <select id="link-folder" class="w-full rounded-md3-md border border-md3-outline bg-md3-surface px-3 py-2"></select>
+          </div>
+        </div>
+        <div>
+          <label class="block font-medium text-md3-onSurfaceVariant mb-1">O que é? (Aprendido com seu padrão)</label>
+          <input type="text" id="link-what-is" placeholder="Resumo objetivo do que se trata este link" class="w-full rounded-md3-md border border-md3-outline px-3 py-2" />
+        </div>
+        <div>
+          <label class="block font-medium text-md3-onSurfaceVariant mb-1">Por que salvei?</label>
+          <input type="text" id="link-why-saved" placeholder="Qual problema resolve ou onde pretende aplicar" class="w-full rounded-md3-md border border-md3-outline px-3 py-2" />
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-md3-onSurfaceVariant mb-1">Tags (separadas por vírgula)</label>
+            <input type="text" id="link-tags" placeholder="ex: react, tutorial, referencia" class="w-full rounded-md3-md border border-md3-outline px-3 py-2" />
+          </div>
+          <div>
+            <label class="block font-medium text-md3-onSurfaceVariant mb-1">Data para lembrar (vazio = toda quarta-feira)</label>
+            <input type="date" id="link-due-date" class="w-full rounded-md3-md border border-md3-outline px-3 py-2" />
+          </div>
+        </div>
+        <div>
+          <label class="block font-medium text-md3-onSurfaceVariant mb-1">URL da Miniatura / Thumbnail (opcional)</label>
+          <input type="text" id="link-thumb" placeholder="https://..." class="w-full rounded-md3-md border border-md3-outline px-3 py-2" />
+        </div>
+        <div class="rounded-md3-md bg-md3-surfaceContainerLow p-3 border border-md3-outlineVariant space-y-1.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <label class="inline-flex items-center gap-2 font-medium cursor-pointer">
+              <input type="checkbox" id="link-is-study" onchange="updateLinkClassificationPreview()" />
+              <span>📚 Vincular a Estudos</span>
+            </label>
+            <label class="inline-flex items-center gap-2 font-medium cursor-pointer text-amber-900">
+              <input type="checkbox" id="link-is-tne" />
+              <span>🔧 Marcar como TNE (Não é Estudo)</span>
+            </label>
+          </div>
+          <p id="link-classification-hint" class="text-[11px] text-md3-onSurfaceVariant"></p>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeLinkModal()" class="rounded-md3-full px-4 py-2 font-medium text-md3-onSurfaceVariant hover:bg-md3-surfaceContainerHigh">Cancelar</button>
+          <button type="submit" class="rounded-md3-full bg-md3-primary px-5 py-2 font-medium text-md3-onPrimary hover:opacity-95">Salvar no Mega Brain</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmação: Histórico vs Excluir -->
+  <div id="archive-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div class="w-full max-w-md rounded-md3-xl bg-md3-surfaceContainerLowest border border-md3-outlineVariant p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between">
+        <span id="archive-label" class="rounded-md3-full bg-md3-primaryContainer px-3 py-1 text-xs font-semibold text-md3-onPrimaryContainer"></span>
+        <button type="button" onclick="closeArchiveModal()" class="p-1 text-md3-onSurfaceVariant text-lg">&times;</button>
+      </div>
+      <div class="space-y-1.5">
+        <h3 id="archive-title" class="text-base font-semibold text-md3-onSurface"></h3>
+        <p id="archive-desc" class="text-xs text-md3-onSurfaceVariant leading-relaxed"></p>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
+        <button type="button" onclick="confirmArchive(true)" class="rounded-md3-full bg-md3-primary px-4 py-2.5 text-xs font-semibold text-md3-onPrimary hover:opacity-95">
+          📦 Sim, guardar no Histórico
+        </button>
+        <button type="button" onclick="confirmArchive(false)" class="rounded-md3-full border border-rose-300 bg-rose-50 px-4 py-2.5 text-xs font-semibold text-rose-800 hover:bg-rose-100">
+          🗑️ Não, apagar agora
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Revisão Semanal de Quarta-feira -->
+  <div id="wednesday-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
+    <div class="w-full max-w-2xl rounded-md3-xl bg-md3-surfaceContainerLowest border border-md3-outlineVariant p-6 shadow-2xl space-y-4 my-8">
+      <div class="flex items-start justify-between gap-3 border-b border-md3-outlineVariant pb-3">
+        <div>
+          <h3 class="text-base font-semibold text-md3-onSurface">📅 Revisão Semanal de Quarta-feira (Itens Sem Data)</h3>
+          <p class="text-xs text-md3-onSurfaceVariant">Resumo dos temas, tags e pastas salvos sem prazo definido.</p>
+        </div>
+        <button type="button" onclick="closeWednesdayModal()" class="p-1 text-md3-onSurfaceVariant text-lg">&times;</button>
+      </div>
+      <div id="wednesday-body" class="space-y-3"></div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'mega_brain_v3_db';
+
+    const TNE_KEYWORDS = [
+      'arrumar site', 'arrumar o site', 'configurar', 'instalar', 'organizar', 'limpar',
+      'comprar', 'pagar', 'agendar', 'baixar', 'atualizar', 'backup', 'deploy',
+      'subir no github', 'criar pasta', 'preparar ambiente', 'preparar site',
+      'manutenção', 'consertar', 'formatar', 'formatação', 'layout', 'css', 'domínio', 'hospedagem'
+    ];
+
+    const STUDY_KEYWORDS = [
+      'estudar', 'ler', 'capítulo', 'aula', 'curso', 'resumo', 'exercício', 'exercícios',
+      'prova', 'artigo científico', 'revisar matéria', 'apostila', 'simulado', 'aprender',
+      'pesquisar sobre', 'documentação', 'teoria', 'conceito'
+    ];
+
+    function uid() {
+      return (window.crypto && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+    }
+
+    const INITIAL_DB = {
+      themes: [
+        { id: 'theme-arquitetura', name: 'Arquitetura & Engenharia', normalizedName: 'arquitetura & engenharia', isPrivate: false, createdAt: new Date().toISOString() },
+        { id: 'theme-design', name: 'Material Design & UI', normalizedName: 'material design & ui', isPrivate: false, createdAt: new Date().toISOString() }
+      ],
+      folders: [
+        { id: 'folder-estudos', parentId: null, name: 'Estudos', color: '#6750A4', isPrivate: false, isStudyFolder: true, status: 'active', sortOrder: 1, createdAt: new Date().toISOString() },
+        { id: 'folder-nextjs', parentId: 'folder-estudos', name: 'Next.js & React', color: '#7D5260', isPrivate: false, isStudyFolder: true, status: 'active', sortOrder: 2, createdAt: new Date().toISOString() },
+        { id: 'folder-referencias', parentId: null, name: 'Referências & Ferramentas', color: '#625B71', isPrivate: false, isStudyFolder: false, status: 'active', sortOrder: 3, createdAt: new Date().toISOString() }
+      ],
+      items: [
+        {
+          id: 'item-1',
+          folderId: 'folder-nextjs',
+          themeId: 'theme-arquitetura',
+          themeName: 'Arquitetura & Engenharia',
+          url: 'https://nextjs.org/docs/app',
+          title: 'Documentação Oficial Next.js App Router',
+          thumbnailUrl: 'https://nextjs.org/og.png',
+          mediaType: 'document',
+          whatIs: 'Guia oficial sobre Server Components, App Router e API Routes.',
+          whySaved: 'Material base para estudar arquitetura full-stack moderna.',
+          tags: ['nextjs', 'react', 'estudo'],
+          isStudy: true,
+          isTne: false,
+          isPrivate: false,
+          status: 'active',
+          seenCount: 0,
+          sortOrder: 1,
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'item-2',
+          folderId: 'folder-referencias',
+          themeId: 'theme-design',
+          themeName: 'Material Design & UI',
+          url: 'https://m3.material.io/',
+          title: 'Material Design 3 — Tokens e Componentes',
+          thumbnailUrl: 'https://www.google.com/s2/favicons?domain=m3.material.io&sz=128',
+          mediaType: 'article',
+          whatIs: 'Especificação oficial de superfícies, elevação e tipografia MD3.',
+          whySaved: 'Referência visual para manter consistência nas telas do app.',
+          tags: ['md3', 'design', 'ui'],
+          isStudy: false,
+          isTne: true,
+          isPrivate: false,
+          status: 'active',
+          seenCount: 0,
+          sortOrder: 2,
+          createdAt: new Date().toISOString()
+        }
+      ],
+      tasks: [
+        {
+          id: 'task-1',
+          folderId: 'folder-nextjs',
+          title: 'Estudar Server Actions e Cache no Next.js',
+          tags: ['nextjs', 'estudo'],
+          isTne: false,
+          completed: false,
+          postponedCount: 0,
+          notificationMode: 'sound_vibrate',
+          isPrivate: false,
+          status: 'active',
+          sortOrder: 1,
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'task-2',
+          folderId: 'folder-estudos',
+          title: 'Arrumar o site de anotações antes de começar a matéria',
+          tags: ['site', 'setup'],
+          isTne: true,
+          completed: false,
+          postponedCount: 0,
+          notificationMode: 'popup_only',
+          isPrivate: false,
+          status: 'active',
+          sortOrder: 2,
+          createdAt: new Date().toISOString()
+        }
+      ],
+      consumptionLogs: [],
+      privateConfig: {
+        enabled: false,
+        pinHash: '',
+        webauthnCredentialId: '',
+        includePrivateInWednesdayReminder: false
+      }
+    };
+
+    let db = loadDb();
+    let activeTab = 'home';
+    let isPrivateUnlocked = false;
+    let selectedFolderId = null;
+    let viewMode = 'detailed';
+    let showDisplayDrawer = false;
+    let includePrivateInReport = false;
+    let linksSearch = '';
+    let linksTagFilter = '';
+    let pendingArchive = null;
+    let dragInfo = null;
+
+    let homeFilter = {
+      showFolders: true,
+      showLinks: true,
+      showTasks: true,
+      onlyStudy: false,
+      mediaType: '',
+      tag: ''
+    };
+
+    let fieldConfig = {
+      showTitle: true,
+      showThumb: true,
+      showTheme: true,
+      showFolder: true,
+      showTags: true,
+      showWhatIs: true,
+      showWhySaved: true
+    };
+
+    function loadDb() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_DB));
+          return JSON.parse(JSON.stringify(INITIAL_DB));
+        }
+        return { ...INITIAL_DB, ...JSON.parse(raw) };
+      } catch {
+        return JSON.parse(JSON.stringify(INITIAL_DB));
+      }
+    }
+
+    function saveDb() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    }
+
+    function showToast(msg) {
+      const box = document.getElementById('toast-box');
+      box.textContent = msg;
+      box.classList.remove('hidden');
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => box.classList.add('hidden'), 4000);
+    }
+
+    function esc(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function getFolderFullPath(folders, folderId) {
+      if (!folderId) return 'Raiz (Sem Pasta)';
+      const parts = [];
+      let curr = folderId;
+      const visited = new Set();
+      while (curr && !visited.has(curr)) {
+        visited.add(curr);
+        const f = folders.find(x => x.id === curr);
+        if (!f) break;
+        parts.unshift(f.name);
+        curr = f.parentId;
+      }
+      return parts.length ? parts.join(' / ') : 'Raiz';
+    }
+
+    function getDescendantFolderIds(folders, rootId) {
+      const res = [rootId];
+      const q = [rootId];
+      while (q.length) {
+        const curr = q.shift();
+        folders.filter(f => f.parentId === curr && f.status === 'active').forEach(c => {
+          res.push(c.id);
+          q.push(c.id);
+        });
+      }
+      return res;
+    }
+
+    function isFolderInsideStudyTree(folders, folderId) {
+      let curr = folderId;
+      const visited = new Set();
+      while (curr && !visited.has(curr)) {
+        visited.add(curr);
+        const f = folders.find(x => x.id === curr);
+        if (!f) break;
+        if (f.isStudyFolder) return true;
+        curr = f.parentId;
+      }
+      return false;
+    }
+
+    function classifyContentRealtime(text, inStudyFolder) {
+      const lower = (text || '').toLowerCase().trim();
+      if (!lower) return { isTne: false, reason: 'Aguardando descrição para análise semântica...' };
+      const matchedTne = TNE_KEYWORDS.find(kw => lower.includes(kw));
+      const matchedStudy = STUDY_KEYWORDS.find(kw => lower.includes(kw));
+      if (matchedTne && !matchedStudy) {
+        return {
+          isTne: true,
+          reason: inStudyFolder
+            ? `Salvo em pasta de Estudo, mas detectado como operacional ("${matchedTne}") -> Classificado como TNE.`
+            : `Atividade operacional detectada ("${matchedTne}") -> Classificada como TNE.`
+        };
+      }
+      if (matchedStudy) {
+        return { isTne: false, reason: `Conteúdo de aprendizagem detectado ("${matchedStudy}") -> Matéria/Estudo.` };
+      }
+      if (inStudyFolder) {
+        return { isTne: false, reason: 'Dentro de pasta de Estudos sem indício operacional -> Matéria/Estudo.' };
+      }
+      return { isTne: true, reason: 'Item geral sem marcador explícito de matéria -> Classificado como TNE.' };
+    }
+
+    function getWednesdayDigest() {
+      const nowIso = new Date().toISOString();
+      const incPriv = db.privateConfig.includePrivateInWednesdayReminder;
+      const items = db.items.filter(i =>
+        i.status === 'active' && !i.dueDate &&
+        (!i.wednesdaySnoozedUntil || i.wednesdaySnoozedUntil <= nowIso) &&
+        (incPriv || !i.isPrivate)
+      );
+      const tasks = db.tasks.filter(t =>
+        t.status === 'active' && !t.completed && !t.dueDate &&
+        (!t.wednesdaySnoozedUntil || t.wednesdaySnoozedUntil <= nowIso) &&
+        (incPriv || !t.isPrivate)
+      );
+      return { items, tasks };
+    }
+
+    function renderNav() {
+      const nav = document.getElementById('top-nav');
+      const tabs = [
+        ['home', '🏠 Início'],
+        ['links_media', '🔗 Links e Mídias'],
+        ['tasks', '✅ Tarefas'],
+        ['history', '📦 Histórico'],
+        ['reports', '📊 Relatórios'],
+        ['private', isPrivateUnlocked ? '🔓 Espaço Privado' : '🔒 Espaço Privado']
+      ];
+      const digest = getWednesdayDigest();
+      const wedCount = digest.items.length + digest.tasks.length;
+
+      nav.innerHTML = tabs.map(([id, label]) => `
+        <button type="button" onclick="switchTab('${id}')"
+          class="rounded-md3-full px-3.5 py-1.5 text-xs font-semibold transition ${
+            activeTab === id
+              ? 'bg-md3-primary text-md3-onPrimary shadow-sm'
+              : 'bg-md3-surfaceContainerHigh text-md3-onSurfaceVariant hover:text-md3-onSurface'
+          }">${label}</button>
+      `).join('') + `
+        <button type="button" onclick="openWednesdayModal()"
+          class="rounded-md3-full bg-md3-tertiaryContainer px-3 py-1.5 text-xs font-semibold text-md3-onTertiaryContainer hover:opacity-90">
+          📅 Quarta (${wedCount})
+        </button>
+      `;
+    }
+
+    function switchTab(tab) {
+      activeTab = tab;
+      selectedFolderId = null;
+      renderApp();
+    }
+
+    function isPrivCtx() {
+      return activeTab === 'private';
+    }
+
+    function renderFolderTreeHtml(folders, parentId = null, depth = 0) {
+      const children = folders
+        .filter(f => f.status === 'active' && f.parentId === parentId)
+        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+      if (!children.length) return '';
+
+      return `<div class="${depth > 0 ? 'ml-3.5 border-l border-md3-outlineVariant pl-2 space-y-1' : 'space-y-1'}">` +
+        children.map(f => {
+          const isSel = selectedFolderId === f.id;
+          return `
+            <div class="space-y-1">
+              <div class="flex items-center justify-between rounded-md3-md px-2.5 py-1.5 text-xs ${
+                isSel ? 'bg-md3-secondaryContainer text-md3-onSecondaryContainer font-semibold' : 'hover:bg-md3-surfaceContainerHigh'
+              }">
+                <button type="button" onclick="selectFolder('${f.id}')" class="flex items-center gap-1.5 truncate text-left flex-1">
+                  <span>📁</span>
+                  <span class="truncate">${esc(f.name)}</span>
+                  ${f.isStudyFolder ? '<span class="rounded bg-md3-primaryContainer px-1 text-[10px] text-md3-onPrimaryContainer">Estudo</span>' : ''}
+                </button>
+                <div class="flex items-center gap-1">
+                  <button type="button" onclick="promptCreateFolder('${f.id}', ${f.isStudyFolder})" title="Criar subpasta" class="px-1 text-md3-primary font-bold">+</button>
+                  <button type="button" onclick="triggerArchive('folder', '${f.id}')" title="Concluir pasta" class="px-1 text-emerald-700">✓</button>
+                </div>
+              </div>
+              ${renderFolderTreeHtml(folders, f.id, depth + 1)}
+            </div>
+          `;
+        }).join('') +
+      `</div>`;
+    }
+
+    function selectFolder(id) {
+      selectedFolderId = id;
+      renderApp();
+    }
+
+    function promptCreateFolder(parentId = null, defaultStudy = false) {
+      const name = prompt(parentId ? 'Nome da nova subpasta:' : 'Nome da nova pasta:');
+      if (!name || !name.trim()) return;
+      const isStudy = confirm('Marcar esta pasta como Pasta de Estudos?
+(OK = Sim, Cancelar = Não)');
+      const inherited = isStudy || defaultStudy || (parentId ? isFolderInsideStudyTree(db.folders, parentId) : false);
+      const maxOrder = db.folders.reduce((m, f) => Math.max(m, f.sortOrder || 0), 0);
+      db.folders.push({
+        id: 'folder-' + uid(),
+        parentId: parentId || null,
+        name: name.trim(),
+        color: '#6750A4',
+        isPrivate: isPrivCtx(),
+        isStudyFolder: inherited,
+        status: 'active',
+        sortOrder: maxOrder + 1,
+        createdAt: new Date().toISOString()
+      });
+      saveDb();
+      renderApp();
+      showToast('Pasta criada com sucesso!');
+    }
+
+    function handleDragStart(kind, id) {
+      dragInfo = { kind, id };
+    }
+
+    function handleDrop(kind, targetId) {
+      if (!dragInfo || dragInfo.kind !== kind || dragInfo.id === targetId) return;
+      const list = kind === 'folder' ? db.folders : kind === 'item' ? db.items : db.tasks;
+      const a = list.findIndex(x => x.id === dragInfo.id);
+      const b = list.findIndex(x => x.id === targetId);
+      if (a !== -1 && b !== -1) {
+        const tmp = list[a].sortOrder || 0;
+        list[a].sortOrder = list[b].sortOrder || 0;
+        list[b].sortOrder = tmp;
+        saveDb();
+        renderApp();
+      }
+      dragInfo = null;
+    }
+
+    function renderHomeExplorer() {
+      const scopedFolders = db.folders.filter(f => f.isPrivate === isPrivCtx());
+      const scopedItems = db.items.filter(i => i.isPrivate === isPrivCtx());
+      const scopedTasks = db.tasks.filter(t => t.isPrivate === isPrivCtx());
+      const allowedFolders = selectedFolderId ? new Set(getDescendantFolderIds(scopedFolders, selectedFolderId)) : null;
+
+      const activeSubfolders = scopedFolders
+        .filter(f => f.status === 'active' && f.parentId === selectedFolderId)
+        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+      const activeItems = scopedItems
+        .filter(item => {
+          if (item.status !== 'active') return false;
+          if (allowedFolders && (!item.folderId || !allowedFolders.has(item.folderId))) return false;
+          if (homeFilter.tag && !item.tags.includes(homeFilter.tag)) return false;
+          if (homeFilter.mediaType && item.mediaType !== homeFilter.mediaType) return false;
+          if (homeFilter.onlyStudy && (!item.isStudy || item.isTne)) return false;
+          return true;
+        })
+        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+      const activeTasks = scopedTasks
+        .filter(t => {
+          if (t.status !== 'active' || t.completed) return false;
+          if (allowedFolders && (!t.folderId || !allowedFolders.has(t.folderId))) return false;
+          if (homeFilter.onlyStudy && t.isTne) return false;
+          if (homeFilter.tag && !t.tags.includes(homeFilter.tag)) return false;
+          return true;
+        })
+        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+      const allTags = Array.from(new Set(scopedItems.flatMap(i => i.tags))).sort();
+
+      const viewLabels = {
+        name_only: 'Só Nome',
+        thumb_only: 'Só Thumb',
+        mini_all: 'Miniatura de Tudo',
+        detailed: 'Detalhado'
+      };
+
+      return `
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <aside class="lg:col-span-3 space-y-4">
+            <div class="rounded-md3-lg border border-md3-outlineVariant bg-md3-surfaceContainerLow p-3 space-y-2.5">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-md3-onSurfaceVariant">Pastas & Subpastas</span>
+                <button type="button" onclick="promptCreateFolder(null, false)" class="rounded-md3-full bg-md3-primaryContainer px-2.5 py-1 text-[11px] font-medium text-md3-onPrimaryContainer">+ Nova Pasta</button>
+              </div>
+              <button type="button" onclick="selectFolder(null)" class="w-full flex items-center gap-2 rounded-md3-md px-2.5 py-1.5 text-xs text-left ${
+                selectedFolderId === null ? 'bg-md3-secondaryContainer text-md3-onSecondaryContainer font-semibold' : 'hover:bg-md3-surfaceContainerHigh'
+              }">📁 Todas as Pastas (Início)</button>
+              ${renderFolderTreeHtml(scopedFolders, null, 0)}
+            </div>
+          </aside>
+
+          <section class="lg:col-span-9 space-y-4">
+            <div class="rounded-md3-lg border border-md3-outlineVariant bg-md3-surfaceContainerLow p-3.5 space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="text-xs font-medium text-md3-onSurfaceVariant">
+                  📁 Local: <strong class="text-md3-onSurface">${esc(getFolderFullPath(scopedFolders, selectedFolderId))}</strong>
+                </div>
+                <div class="flex flex-wrap items-center gap-1.5">
+                  ${Object.keys(viewLabels).map(m => `
+                    <button type="button" onclick="viewMode='${m}'; renderApp();"
+                      class="rounded-md3-full px-3 py-1 text-xs font-medium ${
+                        viewMode === m ? 'bg-md3-primary text-md3-onPrimary' : 'bg-md3-surfaceContainerHigh text-md3-onSurfaceVariant'
+                      }">${viewLabels[m]}</button>
+                  `).join('')}
+                  <button type="button" onclick="showDisplayDrawer=!showDisplayDrawer; renderApp();"
+                    class="rounded-md3-full border border-md3-outline px-3 py-1 text-xs font-medium hover:bg-md3-surfaceContainerHigh">
+                    ⚙️ Editar Exibição & Filtros
+                  </button>
+                </div>
+              </div>
+
+              ${showDisplayDrawer ? `
+                <div class="rounded-md3-md border border-md3-outlineVariant bg-md3-surface p-3.5 space-y-3 text-xs">
+                  <div class="flex flex-wrap gap-3">
+                    <label><input type="checkbox" ${homeFilter.showFolders ? 'checked' : ''} onchange="homeFilter.showFolders=this.checked; renderApp();"> Pastas/Subpastas</label>
+                    <label><input type="checkbox" ${homeFilter.showLinks ? 'checked' : ''} onchange="homeFilter.showLinks=this.checked; renderApp();"> Links e Mídias</label>
+                    <label><input type="checkbox" ${homeFilter.showTasks ? 'checked' : ''} onchange="homeFilter.showTasks=this.checked; renderApp();"> Tarefas</label>
+                    <label class="text-md3-primary font-medium"><input type="checkbox" ${homeFilter.onlyStudy ? 'checked' : ''} onchange="homeFilter.onlyStudy=this.checked; renderApp();"> Somente Estudos</label>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <select onchange="homeFilter.tag=this.value; renderApp();" class="rounded border border-md3-outline px-2.5 py-1.5">
+                      <option value="">Filtrar por Tag (Todas)</option>
+                      ${allTags.map(t => `<option value="${esc(t)}" ${homeFilter.tag === t ? 'selected' : ''}>#${esc(t)}</option>`).join('')}
+                    </select>
+                    <select onchange="homeFilter.mediaType=this.value; renderApp();" class="rounded border border-md3-outline px-2.5 py-1.5">
+                      <option value="">Filtrar por Tipo de Mídia (Todos)</option>
+                      <option value="article" ${homeFilter.mediaType==='article'?'selected':''}>Artigo</option>
+                      <option value="video" ${homeFilter.mediaType==='video'?'selected':''}>Vídeo</option>
+                      <option value="document" ${homeFilter.mediaType==='document'?'selected':''}>Documento</option>
+                      <option value="tool" ${homeFilter.mediaType==='tool'?'selected':''}>Ferramenta</option>
+                      <option value="image" ${homeFilter.mediaType==='image'?'selected':''}>Imagem</option>
+                      <option value="audio" ${homeFilter.mediaType==='audio'?'selected':''}>Áudio</option>
+                    </select>
+                  </div>
+                  <div class="flex flex-wrap gap-3 pt-1 border-t border-md3-outlineVariant">
+                    <span class="font-semibold">Campos nos cards:</span>
+                    ${[
+                      ['showTitle','Título'],['showThumb','Thumbnail'],['showTheme','Tema'],
+                      ['showFolder','Pasta'],['showTags','Tags'],['showWhatIs','O que é'],['showWhySaved','Por que salvei']
+                    ].map(([k, lbl]) => `
+                      <label><input type="checkbox" ${fieldConfig[k] ? 'checked' : ''} onchange="fieldConfig['${k}']=this.checked; renderApp();"> ${lbl}</label>
+                    `).join('')}
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+
+            ${homeFilter.showFolders && activeSubfolders.length ? `
+              <div class="space-y-2">
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-md3-onSurfaceVariant">Pastas & Subpastas (Arraste para reordenar)</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  ${activeSubfolders.map(f => `
+                    <div draggable="true" ondragstart="handleDragStart('folder','${f.id}')" ondragover="event.preventDefault()" ondrop="handleDrop('folder','${f.id}')"
+                      class="md3-card p-3 flex items-center justify-between gap-2 cursor-grab">
+                      <button type="button" onclick="selectFolder('${f.id}')" class="flex items-center gap-2 min-w-0 flex-1 text-left">
+                        <span class="text-md3-outline">⋮⋮</span>
+                        <span>📁</span>
+                        <span class="text-xs font-semibold truncate">${esc(f.name)}</span>
+                      </button>
+                      <button type="button" onclick="triggerArchive('folder','${f.id}')" class="text-emerald-700 px-1 font-bold" title="Concluir pasta">✓</button>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            ${homeFilter.showLinks ? `
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-xs font-semibold uppercase tracking-wider text-md3-onSurfaceVariant">Links & Mídias (${activeItems.length}) — Arraste para organizar</h3>
+                  <button type="button" onclick="openLinkModal()" class="rounded-md3-full bg-md3-primary px-3.5 py-1.5 text-xs font-medium text-md3-onPrimary hover:opacity-95">+ Adicionar Link</button>
+                </div>
+                ${!activeItems.length ? `
+                  <div class="rounded-md3-lg border border-dashed border-md3-outlineVariant p-8 text-center text-xs text-md3-onSurfaceVariant">
+                    Nenhum link ativo neste filtro. Clique em "+ Adicionar Link" para salvar um novo conteúdo.
+                  </div>
+                ` : `
+                  <div class="${
+                    viewMode === 'thumb_only' ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3'
+                    : viewMode === 'mini_all' ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3'
+                    : 'space-y-3'
+                  }">
+                    ${activeItems.map(item => renderItemCard(item, scopedFolders)).join('')}
+                  </div>
+                `}
+              </div>
+            ` : ''}
+
+            ${homeFilter.showTasks && activeTasks.length ? `
+              <div class="space-y-2">
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-md3-onSurfaceVariant">Tarefas Pendentes (${activeTasks.length}) — Arraste para priorizar</h3>
+                <div class="space-y-2">
+                  ${activeTasks.map(t => `
+                    <div draggable="true" ondragstart="handleDragStart('task','${t.id}')" ondragover="event.preventDefault()" ondrop="handleDrop('task','${t.id}')"
+                      class="md3-card p-3 flex items-center justify-between gap-2 cursor-grab">
+                      <div class="flex items-center gap-2 min-w-0">
+                        <span class="text-md3-outline">⋮⋮</span>
+                        <span class="rounded-md3-full px-2 py-0.5 text-[10px] font-semibold ${t.isTne ? 'bg-amber-100 text-amber-900' : 'bg-md3-primaryContainer text-md3-onPrimaryContainer'}">${t.isTne ? 'TNE' : 'Estudo'}</span>
+                        <span class="text-xs font-medium truncate">${esc(t.title)}</span>
+                      </div>
+                      <button type="button" onclick="triggerArchive('task','${t.id}')" class="rounded-md3-full bg-emerald-600 px-2.5 py-1 text-[11px] font-medium text-white">Concluir</button>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+          </section>
+        </div>
+      `;
+    }
+
+    function renderItemCard(item, scopedFolders) {
+      let body = '';
+      if (viewMode === 'thumb_only') {
+        body = `
+          <div class="space-y-2">
+            <img src="${esc(item.thumbnailUrl || 'https://placehold.co/320x180?text=Mega+Brain')}" alt="${esc(item.title)}" class="w-full h-28 object-cover rounded-md3-md bg-md3-surfaceContainer" />
+            <p class="text-xs font-medium truncate">${esc(item.title)}</p>
+          </div>
+        `;
+      } else if (viewMode === 'name_only') {
+        body = `
+          <div class="flex items-center gap-2">
+            <span class="text-md3-outline">⋮⋮</span>
+            <span class="text-sm font-medium truncate">${esc(item.title)}</span>
+          </div>
+        `;
+      } else {
+        body = `
+          <div class="flex items-start gap-3">
+            <span class="text-md3-outline mt-1">⋮⋮</span>
+            ${fieldConfig.showThumb && item.thumbnailUrl ? `
+              <img src="${esc(item.thumbnailUrl)}" alt="${esc(item.title)}"
+                class="${viewMode === 'mini_all' ? 'w-12 h-12 rounded-md3-sm' : 'w-20 h-20 rounded-md3-md border border-md3-outlineVariant'} object-cover shrink-0" />
+            ` : ''}
+            <div class="min-w-0 flex-1 space-y-1">
+              <div class="flex flex-wrap items-center gap-1.5">
+                ${fieldConfig.showTheme ? `<span class="rounded-md3-full bg-md3-secondaryContainer px-2 py-0.5 text-[10px] font-semibold text-md3-onSecondaryContainer">${esc(item.themeName)}</span>` : ''}
+                ${fieldConfig.showFolder ? `<span class="text-[10px] text-md3-onSurfaceVariant">${esc(getFolderFullPath(scopedFolders, item.folderId))}</span>` : ''}
+                ${item.isStudy && !item.isTne ? '<span class="rounded-md3-full bg-md3-primaryContainer px-2 py-0.5 text-[10px] font-semibold text-md3-onPrimaryContainer">📚 Estudo</span>' : ''}
+                ${item.isTne ? '<span class="rounded-md3-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-900">🔧 TNE</span>' : ''}
+              </div>
+              ${fieldConfig.showTitle ? `<h4 class="text-sm font-semibold text-md3-onSurface line-clamp-1">${esc(item.title)}</h4>` : ''}
+              ${viewMode === 'detailed' && fieldConfig.showWhatIs && item.whatIs ? `<p class="text-xs text-md3-onSurfaceVariant line-clamp-2"><strong>O que é:</strong> ${esc(item.whatIs)}</p>` : ''}
+              ${viewMode === 'detailed' && fieldConfig.showWhySaved && item.whySaved ? `<p class="text-xs text-md3-onSurfaceVariant line-clamp-1"><strong>Por que salvei:</strong> ${esc(item.whySaved)}</p>` : ''}
+              ${fieldConfig.showTags && item.tags.length ? `
+                <div class="flex flex-wrap gap-1 pt-0.5">
+                  ${item.tags.map(t => `<span class="rounded bg-md3-surfaceContainerHigh px-1.5 py-0.5 text-[10px] text-md3-onSurfaceVariant">#${esc(t)}</span>`).join('')}
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div draggable="true" ondragstart="handleDragStart('item','${item.id}')" ondragover="event.preventDefault()" ondrop="handleDrop('item','${item.id}')"
+          class="md3-card p-3.5 flex flex-col justify-between gap-2.5 cursor-grab">
+          ${body}
+          <div class="flex flex-wrap items-center justify-end gap-1.5 pt-2 border-t border-md3-outlineVariant/60">
+            <a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer" class="rounded-md3-full border border-md3-outline px-2.5 py-1 text-[11px] font-medium hover:bg-md3-surfaceContainerHigh">↗ Abrir</a>
+            <button type="button" onclick="triggerArchive('item','${item.id}')" class="rounded-md3-full bg-emerald-600 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-emerald-700">✓ Visto</button>
+            <button type="button" onclick="openLinkModal('${item.id}')" class="rounded-md3-full px-2 py-1 text-[11px] text-md3-onSurfaceVariant hover:bg-md3-surfaceContainerHigh">Editar</button>
+            <button type="button" onclick="deleteItemDirect('${item.id}')" class="rounded-md3-full px-2 py-1 text-[11px] text-rose-600 hover:bg-rose-50">Excluir</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderLinksMediaView() {
+      const scopedItems = db.items.filter(i => i.status === 'active' && i.isPrivate === isPrivCtx());
+      const scopedFolders = db.folders.filter(f => f.status === 'active' && f.isPrivate === isPrivCtx());
+      const allTags = Array.from(new Set(scopedItems.flatMap(i => i.tags))).sort();
+
+      const filtered = scopedItems.filter(item => {
+        const q = linksSearch.toLowerCase().trim();
+        const matchQ = !q || item.title.toLowerCase().includes(q) || item.themeName.toLowerCase().includes(q) || item.url.toLowerCase().includes(q);
+        const matchT = !linksTagFilter || item.tags.includes(linksTagFilter);
+        return matchQ && matchT;
+      });
+
+      return `
+        <div class="space-y-5">
+          <div class="rounded-md3-lg border border-md3-outlineVariant bg-md3-surfaceContainerLow p-4 space-y-3">
+            <div class="flex flex-col md:flex-row gap-3">
+              <input type="text" value="${esc(linksSearch)}" oninput="linksSearch=this.value; renderApp();"
+                placeholder="Buscar por título, tema ou URL..." class="flex-1 rounded-md3-md border border-md3-outline bg-md3-surface px-3.5 py-2 text-sm" />
+              <select onchange="linksTagFilter=this.value; renderApp();" class="rounded-md3-md border border-md3-outline bg-md3-surface px-3 py-2 text-sm">
+                <option value="">Todas as Tags (${allTags.length})</option>
+                ${allTags.map(t => `<option value="${esc(t)}" ${linksTagFilter===t?'selected':''}>#${esc(t)}</option>`).join('')}
+              </select>
+              <button type="button" onclick="openLinkModal()" class="rounded-md3-full bg-md3-primary px-4 py-2 text-xs font-semibold text-md3-onPrimary">+ Novo Link</button>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            ${!filtered.length ? `
+              <div class="rounded-md3-lg border border-dashed border-md3-outlineVariant p-8 text-center text-sm text-md3-onSurfaceVariant">
+                Nenhum link ou mídia encontrado com os filtros atuais.
+              </div>
+            ` : filtered.map(item => `
+              <div class="md3-card p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div class="space-y-1 min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="rounded-md3-full bg-md3-secondaryContainer px-2.5 py-0.5 text-[11px] font-medium text-md3-onSecondaryContainer">${esc(item.themeName)}</span>
+                    <span class="text-[11px] uppercase font-semibold text-md3-primary">${esc(item.mediaType)}</span>
+                    ${item.isStudy && !item.isTne ? '<span class="rounded-md3-full bg-md3-primaryContainer px-2 py-0.5 text-[10px] font-semibold text-md3-onPrimaryContainer">📚 Estudo</span>' : ''}
+                    ${item.isTne ? '<span class="rounded-md3-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-900">🔧 TNE</span>' : ''}
+                  </div>
+                  <h4 class="font-semibold text-sm text-md3-onSurface truncate">${esc(item.title)}</h4>
+                  <p class="text-xs text-md3-onSurfaceVariant">${esc(item.whatIs)}</p>
+                  <div class="flex flex-wrap gap-1.5 pt-1">
+                    ${item.tags.map(t => `<span class="rounded-md3-sm bg-md3-surfaceContainerHigh px-2 py-0.5 text-[11px] text-md3-onSurfaceVariant">#${esc(t)}</span>`).join('')}
+                  </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 shrink-0">
+                  <select onchange="moveItemFolder('${item.id}', this.value)" class="rounded-md3-md border border-md3-outline bg-md3-surfaceContainerLow px-2.5 py-1.5 text-xs font-medium max-w-[220px]">
+                    <option value="">📁 Raiz (Sem Pasta)</option>
+                    ${scopedFolders.map(f => `<option value="${f.id}" ${item.folderId===f.id?'selected':''}>📁 ${esc(getFolderFullPath(scopedFolders, f.id))}</option>`).join('')}
+                  </select>
+                  <a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer" class="rounded-md3-full border border-md3-outline px-3 py-1.5 text-xs font-medium">↗ Abrir</a>
+                  <button type="button" onclick="triggerArchive('item','${item.id}')" class="rounded-md3-full bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white">✓ Visto</button>
+                  <button type="button" onclick="deleteItemDirect('${item.id}')" class="rounded-md3-full px-2.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50">Excluir</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function moveItemFolder(itemId, folderId) {
+      const item = db.items.find(i => i.id === itemId);
+      if (item) {
+        item.folderId = folderId || null;
+        saveDb();
+        showToast('Item movido para: ' + getFolderFullPath(db.folders, item.folderId));
+        renderApp();
+      }
+    }
+
+    function renderTasksView() {
+      const scopedTasks = db.tasks.filter(t => t.status === 'active' && !t.completed && t.isPrivate === isPrivCtx());
+      const scopedFolders = db.folders.filter(f => f.status === 'active' && f.isPrivate === isPrivCtx());
+
+      return `
+        <div class="space-y-5">
+          <form onsubmit="createTaskFromForm(event)" class="rounded-md3-lg bg-md3-surfaceContainerLow border border-md3-outlineVariant p-4 space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-2.5">
+              <input type="text" id="task-title-input" required placeholder="Nova tarefa (ex: Arrumar o site de estudos, Revisar capítulo 3...)"
+                class="md:col-span-6 rounded-md3-md border border-md3-outline bg-md3-surface px-3.5 py-2.5 text-sm" />
+              <select id="task-folder-input" class="md:col-span-3 rounded-md3-md border border-md3-outline bg-md3-surface px-3 py-2 text-xs">
+                <option value="">Sem Pasta (Raiz)</option>
+                ${scopedFolders.map(f => `<option value="${f.id}">${esc(getFolderFullPath(scopedFolders, f.id))}</option>`).join('')}
+              </select>
+              <input type="date" id="task-due-input" title="Deixe vazio para resumo de quarta-feira"
+                class="md:col-span-3 rounded-md3-md border border-md3-outline bg-md3-surface px-3 py-2 text-xs" />
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-center">
+              <input type="text" id="task-tags-input" placeholder="Tags (ex: urgente, site, prova)"
+                class="md:col-span-4 rounded-md3-md border border-md3-outline bg-md3-surface px-3 py-2 text-xs" />
+              <div class="md:col-span-5 flex items-center gap-2 rounded-md3-md border border-md3-outline bg-md3-surface px-3 py-1.5 text-xs">
+                <span class="text-md3-onSurfaceVariant">🔔 Notificação:</span>
+                <select id="task-notif-input" class="flex-1 bg-transparent font-medium">
+                  <option value="sound_vibrate">Vibrar e Tocar</option>
+                  <option value="vibrate_only">Só Vibrar</option>
+                  <option value="popup_only">Só Aparecer o Popup</option>
+                </select>
+              </div>
+              <button type="submit" class="md:col-span-3 rounded-md3-full bg-md3-primary px-5 py-2 text-sm font-medium text-md3-onPrimary hover:opacity-95">+ Criar Tarefa</button>
+            </div>
+          </form>
+
+          <div class="space-y-2.5">
+            ${!scopedTasks.length ? `
+              <div class="rounded-md3-lg border border-dashed border-md3-outlineVariant p-8 text-center text-sm text-md3-onSurfaceVariant">
+                Nenhuma tarefa ativa no momento.
+              </div>
+            ` : scopedTasks.map(t => {
+              const notifLabel = t.notificationMode === 'sound_vibrate' ? '🔊📳 Vibrar + Tocar'
+                : t.notificationMode === 'vibrate_only' ? '📳 Só Vibrar' : '💬 Só Popup';
+              return `
+                <div class="md3-card p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div class="space-y-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="rounded-md3-full px-2 py-0.5 text-[10px] font-semibold ${t.isTne ? 'bg-amber-100 text-amber-900' : 'bg-md3-primaryContainer text-md3-onPrimaryContainer'}">
+                        ${t.isTne ? '🔧 TNE' : '📚 Estudo'}
+                      </span>
+                      <span class="rounded-md3-full bg-md3-secondaryContainer px-2 py-0.5 text-[10px] font-medium text-md3-onSecondaryContainer">${notifLabel}</span>
+                      ${t.folderId ? `<span class="text-[11px] text-md3-onSurfaceVariant">📁 ${esc(getFolderFullPath(scopedFolders, t.folderId))}</span>` : ''}
+                      ${t.postponedCount > 0 ? `<span class="rounded-md3-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-800">Adiada ${t.postponedCount}x</span>` : ''}
+                    </div>
+                    <p class="text-sm font-medium text-md3-onSurface">${esc(t.title)}</p>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-1.5 shrink-0">
+                    <button type="button" onclick="testTaskAlert('${t.id}')" class="rounded-md3-full border border-md3-outline px-2.5 py-1 text-xs font-medium">🔔 Testar Alerta</button>
+                    <button type="button" onclick="postponeTaskById('${t.id}')" class="rounded-md3-full border border-md3-outline px-2.5 py-1 text-xs font-medium">⏳ Adiar</button>
+                    <button type="button" onclick="triggerArchive('task','${t.id}')" class="rounded-md3-full bg-emerald-600 px-3 py-1 text-xs font-medium text-white">✓ Concluir</button>
+                    <button type="button" onclick="deleteTaskById('${t.id}')" class="rounded-md3-full px-2 py-1 text-xs text-rose-600">Excluir</button>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function createTaskFromForm(e) {
+      e.preventDefault();
+      const title = document.getElementById('task-title-input').value.trim();
+      if (!title) return;
+      const folderId = document.getElementById('task-folder-input').value || null;
+      const dueDate = document.getElementById('task-due-input').value || undefined;
+      const notificationMode = document.getElementById('task-notif-input').value;
+      const tags = document.getElementById('task-tags-input').value.split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+      const inStudy = isFolderInsideStudyTree(db.folders, folderId);
+      const analysis = classifyContentRealtime(title, inStudy);
+      const maxOrder = db.tasks.reduce((m, t) => Math.max(m, t.sortOrder || 0), 0);
+
+      db.tasks.unshift({
+        id: 'task-' + uid(),
+        folderId,
+        title,
+        tags,
+        isTne: analysis.isTne,
+        completed: false,
+        postponedCount: 0,
+        dueDate,
+        notificationMode,
+        isPrivate: isPrivCtx(),
+        status: 'active',
+        sortOrder: maxOrder + 1,
+        createdAt: new Date().toISOString()
+      });
+      saveDb();
+      renderApp();
+      showToast('Tarefa criada! Classificação: ' + (analysis.isTne ? 'TNE' : 'Estudo'));
+    }
+
+    function testTaskAlert(taskId) {
+      const t = db.tasks.find(x => x.id === taskId);
+      if (!t) return;
+      if (t.notificationMode === 'sound_vibrate') {
+        if (navigator.vibrate) navigator.vibrate([250, 100, 250]);
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = ctx.createOscillator();
+          osc.frequency.setValueAtTime(740, ctx.currentTime);
+          osc.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.25);
+        } catch {}
+        showToast('🔔📳 Notificação (Som + Vibração): ' + t.title);
+      } else if (t.notificationMode === 'vibrate_only') {
+        if (navigator.vibrate) navigator.vibrate([350, 140, 350]);
+        showToast('📳 Notificação (Só Vibração): ' + t.title);
+      } else {
+        showToast('💬 Lembrete (Só Popup): ' + t.title);
+      }
+    }
+
+    function postponeTaskById(taskId) {
+      const t = db.tasks.find(x => x.id === taskId);
+      if (t) {
+        t.postponedCount = (t.postponedCount || 0) + 1;
+        saveDb();
+        renderApp();
+        showToast('Tarefa adiada (' + t.postponedCount + 'x).');
+      }
+    }
+
+    function deleteTaskById(taskId) {
+      db.tasks = db.tasks.filter(x => x.id !== taskId);
+      saveDb();
+      renderApp();
+    }
+
+    function renderHistoryTab() {
+      const hItems = db.items.filter(i => i.status === 'history' && i.isPrivate === isPrivCtx());
+      const hTasks = db.tasks.filter(t => t.status === 'history' && t.isPrivate === isPrivCtx());
+      const hFolders = db.folders.filter(f => f.status === 'history' && f.isPrivate === isPrivCtx());
+
+      return `
+        <div class="space-y-6">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="md3-card p-4"><span class="text-xs text-md3-onSurfaceVariant">Links Vistos no Histórico</span><p class="text-2xl font-bold text-md3-primary mt-1">${hItems.length}</p></div>
+            <div class="md3-card p-4"><span class="text-xs text-md3-onSurfaceVariant">Tarefas Concluídas Salvas</span><p class="text-2xl font-bold text-emerald-700 mt-1">${hTasks.length}</p></div>
+            <div class="md3-card p-4"><span class="text-xs text-md3-onSurfaceVariant">Pastas & Subpastas Concluídas</span><p class="text-2xl font-bold text-md3-onSurface mt-1">${hFolders.length}</p></div>
+          </div>
+          <div class="space-y-2">
+            <h3 class="text-sm font-semibold">Links Guardados</h3>
+            ${!hItems.length ? '<p class="text-xs text-md3-onSurfaceVariant">Nenhum link salvo no histórico.</p>' : hItems.map(i => `
+              <div class="md3-card p-3.5 flex items-center justify-between gap-3">
+                <div><p class="text-sm font-semibold">${esc(i.title)}</p><p class="text-xs text-md3-onSurfaceVariant">Tema: ${esc(i.themeName)} • Visto ${i.seenCount}x</p></div>
+                <div class="flex gap-2">
+                  <a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer" class="rounded-md3-full border border-md3-outline px-3 py-1 text-xs">Reabrir</a>
+                  <button type="button" onclick="deleteItemDirect('${i.id}')" class="text-xs text-rose-600 px-2">Excluir</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="space-y-2">
+            <h3 class="text-sm font-semibold">Tarefas Concluídas Guardadas</h3>
+            ${!hTasks.length ? '<p class="text-xs text-md3-onSurfaceVariant">Nenhuma tarefa guardada.</p>' : hTasks.map(t => `
+              <div class="md3-card p-3.5 flex items-center justify-between gap-3">
+                <p class="text-sm line-through text-md3-onSurfaceVariant">${esc(t.title)} (${t.isTne ? 'TNE' : 'Estudo'})</p>
+                <button type="button" onclick="deleteTaskById('${t.id}')" class="text-xs text-rose-600 px-2">Excluir</button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderReportsView() {
+      const inc = includePrivateInReport;
+      const vFolders = db.folders.filter(f => inc || !f.isPrivate);
+      const vItems = db.items.filter(i => inc || !i.isPrivate);
+      const vTasks = db.tasks.filter(t => inc || !t.isPrivate);
+      const vLogs = db.consumptionLogs.filter(l => inc || !l.isPrivate);
+
+      const themeCounts = {};
+      const tagCounts = {};
+      vItems.forEach(i => {
+        themeCounts[i.themeName] = (themeCounts[i.themeName] || 0) + 1;
+        i.tags.forEach(tg => tagCounts[tg] = (tagCounts[tg] || 0) + 1);
+      });
+      const topThemes = Object.entries(themeCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      const topTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+
+      const activeLinks = vItems.filter(i => i.status === 'active').length;
+      const visited = vLogs.length;
+      const visitRate = (activeLinks + visited) ? Math.round((visited / (activeLinks + visited)) * 100) : 0;
+
+      const totalTasks = vTasks.length;
+      const completedTasks = vTasks.filter(t => t.completed).length;
+      const postponedTasks = vTasks.filter(t => t.postponedCount > 0).length;
+      const compRate = totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0;
+      const postRate = totalTasks ? Math.round((postponedTasks / totalTasks) * 100) : 0;
+
+      const studyItems = vItems.filter(i => i.isStudy && !i.isTne);
+      const studyTasks = vTasks.filter(t => !t.isTne);
+      const studyLogs = vLogs.filter(l => l.isStudy && !l.isTne);
+      const hasStudy = studyItems.length > 0 || studyTasks.length > 0 || studyLogs.length > 0;
+
+      const tneTasks = vTasks.filter(t => t.isTne);
+      const tneItems = vItems.filter(i => i.isTne);
+
+      return `
+        <div class="space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-3 rounded-md3-lg bg-md3-surfaceContainerLow border border-md3-outlineVariant p-4">
+            <div>
+              <h2 class="text-base font-semibold">📊 Relatórios Analíticos & Histórico Consolidado</h2>
+              <p class="text-xs text-md3-onSurfaceVariant">Visitas computadas exclusivamente após confirmação no botão "Visto".</p>
+            </div>
+            ${db.privateConfig.enabled ? `
+              <label class="inline-flex items-center gap-2 rounded-md3-full bg-md3-surfaceContainerHigh px-3.5 py-1.5 text-xs font-medium cursor-pointer">
+                <input type="checkbox" ${includePrivateInReport ? 'checked' : ''} onchange="includePrivateInReport=this.checked; renderApp();">
+                🔒 Incluir Espaço Privado no relatório
+              </label>
+            ` : ''}
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="md3-card p-4"><p class="text-xs text-md3-onSurfaceVariant">Taxa de Visita Real aos Links</p><p class="text-2xl font-bold text-md3-primary mt-1">${visitRate}%</p><p class="text-[11px] text-md3-onSurfaceVariant mt-1">${visited} vistos (${vLogs.filter(l=>l.keptInHistory).length} no histórico)</p></div>
+            <div class="md3-card p-4"><p class="text-xs text-md3-onSurfaceVariant">Taxa de Conclusão de Tarefas</p><p class="text-2xl font-bold text-emerald-700 mt-1">${compRate}%</p><p class="text-[11px] text-md3-onSurfaceVariant mt-1">${completedTasks} de ${totalTasks} tarefas</p></div>
+            <div class="md3-card p-4"><p class="text-xs text-md3-onSurfaceVariant">Taxa de Adiamento de Tarefas</p><p class="text-2xl font-bold text-amber-700 mt-1">${postRate}%</p><p class="text-[11px] text-md3-onSurfaceVariant mt-1">${postponedTasks} tarefas adiadas</p></div>
+            <div class="md3-card p-4"><p class="text-xs text-md3-onSurfaceVariant">Guardados no Histórico</p><p class="text-2xl font-bold mt-1">${vItems.filter(i=>i.status==='history').length + vTasks.filter(t=>t.status==='history').length + vFolders.filter(f=>f.status==='history').length}</p></div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md3-card p-4 space-y-2">
+              <h3 class="text-sm font-semibold">Temas Mais Salvos</h3>
+              ${topThemes.map(([th, c]) => `<div class="flex justify-between text-xs"><span>${esc(th)}</span><strong>${c}</strong></div>`).join('') || '<p class="text-xs text-md3-onSurfaceVariant">Sem dados.</p>'}
+            </div>
+            <div class="md3-card p-4 space-y-2">
+              <h3 class="text-sm font-semibold">Tags Mais Frequentes</h3>
+              <div class="flex flex-wrap gap-2">
+                ${topTags.map(([tg, c]) => `<span class="rounded-md3-full bg-md3-surfaceContainerHigh px-3 py-1 text-xs">#${esc(tg)} <strong>${c}</strong></span>`).join('') || '<p class="text-xs text-md3-onSurfaceVariant">Sem dados.</p>'}
+              </div>
+            </div>
+          </div>
+
+          ${hasStudy ? `
+            <div class="rounded-md3-lg border border-md3-primary/30 bg-md3-primaryContainer/25 p-5 space-y-2">
+              <h3 class="text-sm font-semibold text-md3-onPrimaryContainer">📚 Desempenho em Estudos</h3>
+              <p class="text-xs">Materiais de Estudo: ${studyItems.length} ativos / ${studyLogs.length} concluídos • Tarefas de Estudo: ${studyTasks.filter(t=>t.completed).length}/${studyTasks.length} concluídas</p>
+            </div>
+          ` : ''}
+
+          <div class="rounded-md3-lg border border-amber-300 bg-amber-50/60 p-5 space-y-2">
+            <h3 class="text-sm font-semibold text-amber-950">🔧 TNE — Tarefas e Preparações que Não são Estudo</h3>
+            <p class="text-xs text-amber-900">Tarefas TNE: ${tneTasks.length} (${tneTasks.filter(t=>t.completed).length} concluídas) • Links/Ferramentas TNE: ${tneItems.length}</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPrivateTab() {
+      if (isPrivateUnlocked) {
+        return `
+          <div class="space-y-4">
+            <div class="flex items-center justify-between rounded-md3-lg bg-purple-50 border border-purple-200 px-4 py-2.5 text-xs">
+              <span class="font-semibold text-purple-950">🔓 Espaço Privado Desbloqueado — Itens isolados das estatísticas gerais.</span>
+              <button type="button" onclick="isPrivateUnlocked=false; renderApp();" class="rounded-md3-full bg-purple-900 px-3 py-1 font-medium text-white">Bloquear Cofre</button>
+            </div>
+            ${renderHomeExplorer()}
+          </div>
+        `;
+      }
+
+      return `
+        <div class="mx-auto max-w-md rounded-md3-xl border border-md3-outlineVariant bg-md3-surfaceContainerLowest p-6 shadow-md space-y-4 text-center">
+          <div class="text-3xl">🔒</div>
+          <h2 class="text-lg font-semibold">${db.privateConfig.enabled ? 'Espaço Privado Protegido' : 'Configurar Espaço Privado'}</h2>
+          <p class="text-xs text-md3-onSurfaceVariant">Proteja pastas, links e tarefas sensíveis com PIN numérico e digital no celular.</p>
+          <form onsubmit="handlePrivateAuth(event)" class="space-y-3 text-left">
+            <input type="password" id="priv-pin" inputmode="numeric" required placeholder="Digite seu PIN (mín. 4 dígitos)"
+              class="w-full rounded-md3-md border border-md3-outline px-3 py-2.5 text-center tracking-widest text-base" />
+            ${!db.privateConfig.enabled ? `
+              <input type="password" id="priv-pin-confirm" inputmode="numeric" required placeholder="Confirme o PIN"
+                class="w-full rounded-md3-md border border-md3-outline px-3 py-2.5 text-center tracking-widest text-base" />
+            ` : ''}
+            <button type="submit" class="w-full rounded-md3-full bg-md3-primary py-2.5 text-sm font-semibold text-md3-onPrimary">
+              ${db.privateConfig.enabled ? 'Desbloquear com PIN' : 'Criar Cofre Privado'}
+            </button>
+          </form>
+        </div>
+      `;
+    }
+
+    async function hashPinStr(pin) {
+      if (window.crypto && crypto.subtle) {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('mega_brain_salt_' + pin));
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+      }
+      return btoa('fallback_' + pin);
+    }
+
+    async function handlePrivateAuth(e) {
+      e.preventDefault();
+      const pin = document.getElementById('priv-pin').value;
+      if (!db.privateConfig.enabled) {
+        const conf = document.getElementById('priv-pin-confirm').value;
+        if (pin.length < 4 || pin !== conf) {
+          alert('PIN inválido ou não coincide.');
+          return;
+        }
+        db.privateConfig.enabled = true;
+        db.privateConfig.pinHash = await hashPinStr(pin);
+        saveDb();
+        isPrivateUnlocked = true;
+        renderApp();
+      } else {
+        const h = await hashPinStr(pin);
+        if (h === db.privateConfig.pinHash) {
+          isPrivateUnlocked = true;
+          renderApp();
+        } else {
+          alert('PIN incorreto.');
+        }
+      }
+    }
+
+    function openLinkModal(editId = null) {
+      const scopedFolders = db.folders.filter(f => f.status === 'active' && f.isPrivate === isPrivCtx());
+      const folderSel = document.getElementById('link-folder');
+      folderSel.innerHTML = '<option value="">Raiz (Sem Pasta)</option>' +
+        scopedFolders.map(f => `<option value="${f.id}">${esc(getFolderFullPath(scopedFolders, f.id))}</option>`).join('');
+
+      const item = editId ? db.items.find(i => i.id === editId) : null;
+      document.getElementById('link-modal-title').textContent = item ? 'Editar Link / Mídia' : 'Novo Link ou Mídia (Aprendizado Contínuo)';
+      document.getElementById('link-id').value = item ? item.id : '';
+      document.getElementById('link-url').value = item ? item.url : '';
+      document.getElementById('link-title').value = item ? item.title : '';
+      document.getElementById('link-media-type').value = item ? item.mediaType : 'article';
+      document.getElementById('link-theme').value = item ? item.themeName : '';
+      document.getElementById('link-folder').value = item ? (item.folderId || '') : (selectedFolderId || '');
+      document.getElementById('link-what-is').value = item ? item.whatIs : '';
+      document.getElementById('link-why-saved').value = item ? item.whySaved : '';
+      document.getElementById('link-tags').value = item ? item.tags.join(', ') : '';
+      document.getElementById('link-due-date').value = item ? (item.dueDate || '') : '';
+      document.getElementById('link-thumb').value = item ? item.thumbnailUrl : '';
+      document.getElementById('link-is-study').checked = item ? item.isStudy : isFolderInsideStudyTree(scopedFolders, selectedFolderId);
+      document.getElementById('link-is-tne').checked = item ? item.isTne : false;
+
+      document.getElementById('link-modal').classList.remove('hidden');
+    }
+
+    function closeLinkModal() {
+      document.getElementById('link-modal').classList.add('hidden');
+    }
+
+    function autoAnalyzeLink() {
+      const urlVal = document.getElementById('link-url').value.trim();
+      if (!urlVal) return;
+      try {
+        const u = new URL(urlVal);
+        const domain = u.hostname.replace('www.', '');
+        const slug = u.pathname.split('/').filter(Boolean).pop()?.replace(/[-_]/g, ' ') || domain;
+        if (!document.getElementById('link-title').value) {
+          document.getElementById('link-title').value = slug.charAt(0).toUpperCase() + slug.slice(1);
+        }
+        if (!document.getElementById('link-thumb').value) {
+          document.getElementById('link-thumb').value = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+        }
+        if (!document.getElementById('link-theme').value) {
+          document.getElementById('link-theme').value = domain.split('.')[0].toUpperCase();
+        }
+        if (!document.getElementById('link-tags').value) {
+          document.getElementById('link-tags').value = domain.split('.')[0] + ', referencia';
+        }
+        if (!document.getElementById('link-what-is').value) {
+          document.getElementById('link-what-is').value = 'Conteúdo capturado de ' + domain;
+        }
+        showToast('Metadados e sugestões preenchidos!');
+      } catch {
+        alert('Insira uma URL válida (https://...)');
+      }
+    }
+
+    document.getElementById('link-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const id = document.getElementById('link-id').value;
+      const url = document.getElementById('link-url').value.trim();
+      const title = document.getElementById('link-title').value.trim() || url;
+      const mediaType = document.getElementById('link-media-type').value;
+      const themeName = document.getElementById('link-theme').value.trim() || 'Geral';
+      const folderId = document.getElementById('link-folder').value || null;
+      const whatIs = document.getElementById('link-what-is').value.trim();
+      const whySaved = document.getElementById('link-why-saved').value.trim();
+      const tags = document.getElementById('link-tags').value.split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+      const dueDate = document.getElementById('link-due-date').value || undefined;
+      const thumbnailUrl = document.getElementById('link-thumb').value.trim();
+      const isStudy = document.getElementById('link-is-study').checked;
+      const isTne = document.getElementById('link-is-tne').checked;
+
+      if (id) {
+        const idx = db.items.findIndex(x => x.id === id);
+        if (idx !== -1) {
+          Object.assign(db.items[idx], { url, title, mediaType, themeName, folderId, whatIs, whySaved, tags, dueDate, thumbnailUrl, isStudy, isTne });
+        }
+      } else {
+        const maxOrder = db.items.reduce((m, i) => Math.max(m, i.sortOrder || 0), 0);
+        db.items.unshift({
+          id: 'item-' + uid(),
+          folderId, themeId: 'theme-' + uid(), themeName, url, title, thumbnailUrl, mediaType,
+          whatIs, whySaved, tags, isStudy, isTne, isPrivate: isPrivCtx(),
+          status: 'active', seenCount: 0, sortOrder: maxOrder + 1, dueDate, createdAt: new Date().toISOString()
+        });
+      }
+      saveDb();
+      closeLinkModal();
+      renderApp();
+      showToast('Link salvo no Mega Brain!');
+    });
+
+    function deleteItemDirect(id) {
+      db.items = db.items.filter(i => i.id !== id);
+      saveDb();
+      renderApp();
+    }
+
+    function triggerArchive(kind, id) {
+      pendingArchive = { kind, id };
+      let title = '';
+      if (kind === 'item') title = db.items.find(x => x.id === id)?.title || '';
+      if (kind === 'task') title = db.tasks.find(x => x.id === id)?.title || '';
+      if (kind === 'folder') title = db.folders.find(x => x.id === id)?.name || '';
+
+      document.getElementById('archive-label').textContent =
+        kind === 'item' ? 'Conteúdo Visto' : kind === 'task' ? 'Tarefa Concluída' : 'Pasta / Subpasta Concluída';
+      document.getElementById('archive-title').textContent = title;
+      document.getElementById('archive-desc').textContent =
+        kind === 'item'
+          ? 'Deseja manter este link no seu Histórico de itens vistos? Se escolher "Não", ele será apagado mas continuará contabilizado como visitado no relatório.'
+          : 'Deseja salvar este registro no seu Histórico de concluídos ou prefere excluí-lo definitivamente?';
+      document.getElementById('archive-modal').classList.remove('hidden');
+    }
+
+    function closeArchiveModal() {
+      pendingArchive = null;
+      document.getElementById('archive-modal').classList.add('hidden');
+    }
+
+    function confirmArchive(keepInHistory) {
+      if (!pendingArchive) return;
+      const { kind, id } = pendingArchive;
+      const now = new Date().toISOString();
+
+      if (kind === 'item') {
+        const target = db.items.find(i => i.id === id);
+        if (target) {
+          db.consumptionLogs.unshift({
+            id: 'log-' + uid(),
+            itemId: target.id,
+            title: target.title,
+            themeName: target.themeName,
+            tags: target.tags,
+            isStudy: target.isStudy,
+            isTne: target.isTne,
+            isPrivate: target.isPrivate,
+            keptInHistory: keepInHistory,
+            consumedAt: now
+          });
+          if (keepInHistory) {
+            target.status = 'history';
+            target.seenCount = (target.seenCount || 0) + 1;
+            target.lastSeenAt = now;
+          } else {
+            db.items = db.items.filter(i => i.id !== id);
+          }
+        }
+      } else if (kind === 'task') {
+        if (keepInHistory) {
+          const t = db.tasks.find(x => x.id === id);
+          if (t) { t.completed = true; t.status = 'history'; t.completedAt = now; }
+        } else {
+          db.tasks = db.tasks.filter(x => x.id !== id);
+        }
+      } else if (kind === 'folder') {
+        const ids = new Set(getDescendantFolderIds(db.folders, id));
+        if (keepInHistory) {
+          db.folders.forEach(f => { if (ids.has(f.id)) { f.status = 'history'; f.archivedAt = now; } });
+        } else {
+          db.folders = db.folders.filter(f => !ids.has(f.id));
+        }
+        if (selectedFolderId === id) selectedFolderId = null;
+      }
+
+      saveDb();
+      closeArchiveModal();
+      renderApp();
+      showToast(keepInHistory ? 'Salvo no Histórico e contabilizado!' : 'Contabilizado e removido da lista ativa.');
+    }
+
+    function openWednesdayModal() {
+      const digest = getWednesdayDigest();
+      const body = document.getElementById('wednesday-body');
+      if (!digest.items.length && !digest.tasks.length) {
+        body.innerHTML = '<p class="text-xs text-md3-onSurfaceVariant text-center py-6">Nenhum item ou tarefa sem data pendente para esta quarta-feira!</p>';
+      } else {
+        body.innerHTML =
+          digest.items.map(i => `
+            <div class="rounded-md3-lg border border-md3-outlineVariant p-3 space-y-1.5">
+              <div class="text-[11px] text-md3-onSurfaceVariant">Tema: <strong>${esc(i.themeName)}</strong> • 📁 ${esc(getFolderFullPath(db.folders, i.folderId))}</div>
+              <p class="text-sm font-semibold">${esc(i.title)}</p>
+              <div class="flex justify-end gap-2">
+                <button type="button" onclick="snoozeWednesday('item','${i.id}')" class="rounded-md3-full border border-md3-outline px-3 py-1 text-xs">Adiar p/ próxima quarta</button>
+                <a href="${esc(i.url)}" target="_blank" onclick="closeWednesdayModal(); triggerArchive('item','${i.id}');" class="rounded-md3-full bg-md3-primary px-3 py-1 text-xs font-semibold text-md3-onPrimary">Ver Agora</a>
+              </div>
+            </div>
+          `).join('') +
+          digest.tasks.map(t => `
+            <div class="rounded-md3-lg border border-md3-outlineVariant p-3 space-y-1.5">
+              <div class="text-[11px] text-amber-900">Tarefa sem data • 📁 ${esc(getFolderFullPath(db.folders, t.folderId))}</div>
+              <p class="text-sm font-semibold">${esc(t.title)}</p>
+              <div class="flex justify-end gap-2">
+                <button type="button" onclick="snoozeWednesday('task','${t.id}')" class="rounded-md3-full border border-md3-outline px-3 py-1 text-xs">Adiar p/ próxima quarta</button>
+                <button type="button" onclick="closeWednesdayModal(); triggerArchive('task','${t.id}');" class="rounded-md3-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white">Resolver Agora</button>
+              </div>
+            </div>
+          `).join('');
+      }
+      document.getElementById('wednesday-modal').classList.remove('hidden');
+    }
+
+    function closeWednesdayModal() {
+      document.getElementById('wednesday-modal').classList.add('hidden');
+    }
+
+    function snoozeWednesday(kind, id) {
+      const d = new Date();
+      const diff = (3 + 7 - d.getDay()) % 7 || 7;
+      d.setDate(d.getDate() + diff);
+      d.setHours(9, 0, 0, 0);
+      const nextWed = d.toISOString();
+      if (kind === 'item') {
+        const it = db.items.find(x => x.id === id);
+        if (it) it.wednesdaySnoozedUntil = nextWed;
+      } else {
+        const tk = db.tasks.find(x => x.id === id);
+        if (tk) { tk.wednesdaySnoozedUntil = nextWed; tk.postponedCount = (tk.postponedCount || 0) + 1; }
+      }
+      saveDb();
+      openWednesdayModal();
+      renderNav();
+      showToast('Adiado para a próxima quarta-feira!');
+    }
+
+    function renderApp() {
+      renderNav();
+      const main = document.getElementById('main-content');
+      if (activeTab === 'home') main.innerHTML = renderHomeExplorer();
+      else if (activeTab === 'links_media') main.innerHTML = renderLinksMediaView();
+      else if (activeTab === 'tasks') main.innerHTML = renderTasksView();
+      else if (activeTab === 'history') main.innerHTML = renderHistoryTab();
+      else if (activeTab === 'reports') main.innerHTML = renderReportsView();
+      else if (activeTab === 'private') main.innerHTML = renderPrivateTab();
+    }
+
+    renderApp();
+    if (new Date().getDay() === 3) {
+      const d = getWednesdayDigest();
+      if (d.items.length || d.tasks.length) openWednesdayModal();
+    }
+  </script>
+</body>
+</html>
