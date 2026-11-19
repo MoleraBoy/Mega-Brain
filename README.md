@@ -1,1 +1,0 @@
-# Mega Brain v5 — Sincronização em Tempo Real entre Dispositivos.
