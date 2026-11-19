@@ -1,1 +1,0 @@
-# Mega Brain v6 — Completo com Cofre PIN, Notas/Áudio/Imagem, Relatórios, Quarta-feira e Sync Global.
