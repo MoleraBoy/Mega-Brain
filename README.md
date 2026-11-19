@@ -1,1 +1,0 @@
-# Mega Brain v8 — Pastas colapsáveis, arrastar e soltar, mover pasta para o cofre/público, recorrência, botão Gerar Thumb e responsividade.
