@@ -1,0 +1,1 @@
+# Mega Brain v9 — PWA com ícone personalizado, retorno à aba aberta, Calendário, Quadro de Detetive, Cronômetro/Temporizador, Seções minimizáveis e lista de itens na pasta.
