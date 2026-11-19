@@ -1,0 +1,2473 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Mega Brain v7 — Multi-Áudios, Multi-Notas, Câmera/Fotos & Cofre</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+          },
+          boxShadow: {
+            'material': '0 2px 8px -2px rgba(0, 0, 0, 0.08), 0 1px 3px -1px rgba(0, 0, 0, 0.04)',
+            'material-lg': '0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.06)',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; transition: background-color 0.2s, color 0.2s; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.4); border-radius: 9999px; }
+    iframe#netlify-badge, div[style*="z-index: 99999"], .netlify-badge {
+      bottom: 76px !important;
+      right: 12px !important;
+      transform: scale(0.82);
+      opacity: 0.85;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-zinc-950 dark:text-zinc-100 antialiased pb-24">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef, useCallback } = React;
+
+    // =========================================================================
+    // ÍCONES LUCIDE WRAPPER
+    // =========================================================================
+    const Icon = ({ name, size = 18, className = "" }) => {
+      const ref = useRef(null);
+      useEffect(() => {
+        if (ref.current && window.lucide) {
+          ref.current.innerHTML = '';
+          const i = document.createElement('i');
+          i.setAttribute('data-lucide', name);
+          i.style.width = `${size}px`;
+          i.style.height = `${size}px`;
+          if (className) i.setAttribute('class', className);
+          ref.current.appendChild(i);
+          window.lucide.createIcons({ root: ref.current });
+        }
+      }, [name, size, className]);
+      return <span ref={ref} className="inline-flex items-center justify-center shrink-0" />;
+    };
+
+    // =========================================================================
+    // METADADOS E VALORES INICIAIS
+    // =========================================================================
+    const PRIORITY_META = {
+      urgent: {
+        label: 'Urgente / Importante',
+        dot: '🔴',
+        badge: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800',
+        border: 'border-l-4 border-l-rose-500',
+      },
+      attention: {
+        label: 'Atenção / Médio',
+        dot: '🟡',
+        badge: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800',
+        border: 'border-l-4 border-l-amber-400',
+      },
+      later: {
+        label: 'Para Mais Tarde / Curiosidade',
+        dot: '🔵',
+        badge: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800',
+        border: 'border-l-4 border-l-indigo-500',
+      },
+      done: {
+        label: 'Concluído / Hábito',
+        dot: '🟢',
+        badge: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800',
+        border: 'border-l-4 border-l-emerald-500',
+      }
+    };
+
+    const NOTIF_MODES = [
+      { id: 'none', label: 'Sem Notificação' },
+      { id: 'popup_only', label: 'Apenas Popup' },
+      { id: 'vibrate_only', label: 'Vibração do Celular' },
+      { id: 'vibrate_sound', label: 'Popup + Som + Vibração' },
+    ];
+
+    const INITIAL_FOLDERS = [
+      { id: 'f-movies', name: 'Cinema & Séries', parentId: null, isPrivate: false },
+      { id: 'f-horror', name: 'Maratona Terror', parentId: 'f-movies', isPrivate: false },
+      { id: 'f-comedy', name: 'Comédias Leves', parentId: 'f-movies', isPrivate: false },
+      { id: 'f-studies', name: 'Área de Estudos', parentId: null, isPrivate: false },
+      { id: 'f-priv-root', name: 'Cofre Pessoal', parentId: null, isPrivate: true },
+    ];
+
+    const INITIAL_ITEMS = [
+      {
+        id: 'i-1',
+        kind: 'link_media',
+        title: 'Hereditário (Hereditary)',
+        url: 'https://www.imdb.com/title/tt7784604/',
+        thumbnail: 'https://images.unsplash.com/photo-1509248961158-e54f6934749c?auto=format&fit=crop&w=800&q=80',
+        images: [],
+        audios: [],
+        freeNotes: ['Lembrar de assistir com luz apagada e fone de ouvido.'],
+        category: 'media_terror',
+        genreOrTopic: 'Terror Psicológico',
+        whatIsIt: 'Filme de terror psicológico dirigido por Ari Aster.',
+        whySaved: 'Assistir depois sem pressa.',
+        tags: ['terror', 'filme', 'ver-depois'],
+        folderId: 'f-horror',
+        priority: 'later',
+        isPrivate: false,
+        assignedPersons: ['Tabata', 'João'],
+        notificationMode: 'none',
+        watchLater: true,
+        seenConfirmed: false,
+        snoozeUntil: null,
+        archivedToHistory: false,
+        createdAt: new Date().toISOString(),
+        order: 0,
+      },
+      {
+        id: 'i-2',
+        kind: 'note',
+        title: 'Nota rápida: Revisar arquitetura do projeto',
+        images: [],
+        audios: [],
+        freeNotes: ['Separar componentes visuais da lógica de sincronização.', 'Testar no celular e no computador.'],
+        category: 'links_gerais',
+        genreOrTopic: 'Estudos',
+        whatIsIt: 'Anotação livre sem necessidade de link.',
+        whySaved: 'Lembrar dos pontos principais de estudo.',
+        tags: ['estudos', 'nota'],
+        folderId: 'f-studies',
+        priority: 'attention',
+        isPrivate: false,
+        assignedPersons: ['João'],
+        notificationMode: 'vibrate_sound',
+        watchLater: false,
+        seenConfirmed: false,
+        archivedToHistory: false,
+        createdAt: new Date().toISOString(),
+        order: 1,
+      }
+    ];
+
+    // =========================================================================
+    // SINCRONIZAÇÃO EM TEMPO REAL NA NUVEM (SYNC ROOM PC <-> CELULAR)
+    // =========================================================================
+    const SYNC_BASE = 'https://ntfy.sh';
+
+    function generateRoomCode() {
+      const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+      let code = 'mb-';
+      for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
+      return code;
+    }
+
+    function getDeviceId() {
+      let id = localStorage.getItem('mega_brain_device_id');
+      if (!id) {
+        id = 'dev-' + Math.random().toString(36).substring(2, 9);
+        localStorage.setItem('mega_brain_device_id', id);
+      }
+      return id;
+    }
+
+    async function pushCloudState(roomCode, payload) {
+      if (!roomCode) return false;
+      try {
+        const res = await fetch(`${SYNC_BASE}/${encodeURIComponent(roomCode)}`, {
+          method: 'POST',
+          body: JSON.stringify({
+            updatedAt: Date.now(),
+            deviceId: getDeviceId(),
+            data: payload
+          }),
+          headers: {
+            'Title': 'MegaBrainSync',
+            'Tags': 'brain'
+          }
+        });
+        return res.ok;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    async function pullCloudState(roomCode) {
+      if (!roomCode) return null;
+      try {
+        const res = await fetch(`${SYNC_BASE}/${encodeURIComponent(roomCode)}/json?poll=1&since=all`);
+        if (!res.ok) return null;
+        const text = await res.text();
+        const lines = text.trim().split('\n').filter(Boolean);
+        for (let i = lines.length - 1; i >= 0; i--) {
+          try {
+            const evt = JSON.parse(lines[i]);
+            if (evt.event === 'message' && evt.message) {
+              const parsed = JSON.parse(evt.message);
+              if (parsed && parsed.data && parsed.updatedAt) {
+                return parsed;
+              }
+            }
+          } catch (err) {}
+        }
+      } catch (e) {}
+      return null;
+    }
+
+    // =========================================================================
+    // GERADOR AUTOMÁTICO DE THUMBNAIL
+    // =========================================================================
+    async function fetchAutoThumbnail(url) {
+      if (!url || !url.startsWith('http')) return null;
+      if (url.includes('youtube.com') || url.includes('youtu.be')) {
+        let videoId = '';
+        if (url.includes('youtu.be/')) videoId = url.split('youtu.be/')[1]?.split('?')[0];
+        else if (url.includes('watch?v=')) videoId = url.split('watch?v=')[1]?.split('&')[0];
+        if (videoId) return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+      }
+      try {
+        const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(url)}`);
+        const data = await res.json();
+        if (data && data.status === 'success' && data.data?.image?.url) {
+          return data.data.image.url;
+        }
+      } catch (e) {}
+      return null;
+    }
+
+    // =========================================================================
+    // NOTIFICAÇÕES CONFIGURÁVEIS (POPUP, SOM, VIBRAÇÃO)
+    // =========================================================================
+    function triggerConfiguredAlert(title, body, mode = 'popup_only') {
+      if (!mode || mode === 'none') return;
+
+      if ((mode === 'vibrate_only' || mode === 'vibrate_sound') && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { navigator.vibrate([300, 150, 300, 150, 450]); } catch (e) {}
+      }
+
+      if (mode === 'vibrate_sound' && typeof window !== 'undefined') {
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          const ctx = new AudioCtx();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.25);
+          gain.gain.setValueAtTime(0.25, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.65);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.65);
+        } catch (e) {}
+      }
+
+      if ((mode === 'popup_only' || mode === 'vibrate_sound') && typeof window !== 'undefined' && 'Notification' in window) {
+        if (Notification.permission === 'granted') {
+          new Notification(title, { body });
+        } else if (Notification.permission !== 'denied') {
+          Notification.requestPermission().then((p) => {
+            if (p === 'granted') new Notification(title, { body });
+          });
+        }
+      }
+    }
+
+    // =========================================================================
+    // MODAL DE PIN DO COFRE PRIVADO
+    // =========================================================================
+    const PinModal = ({ isOpen, onClose, currentPin, onSetPin, onUnlock }) => {
+      const [pinInput, setPinInput] = useState('');
+      const [newPin, setNewPin] = useState('');
+
+      if (!isOpen) return null;
+
+      return (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl max-w-sm w-full p-6 border border-slate-200 dark:border-zinc-800 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold flex items-center gap-2">
+                <Icon name="lock" size={18} className="text-amber-500" /> Cofre & Pastas Privadas
+              </h3>
+              <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800">
+                <Icon name="x" size={16} />
+              </button>
+            </div>
+
+            {currentPin ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (pinInput === currentPin) {
+                    setPinInput('');
+                    onUnlock();
+                    onClose();
+                  } else {
+                    alert('PIN incorreto!');
+                  }
+                }}
+                className="space-y-3"
+              >
+                <p className="text-xs text-slate-500">Digite seu PIN de acesso para gerenciar ou visualizar itens privados:</p>
+                <input
+                  type="password"
+                  maxLength={8}
+                  required
+                  value={pinInput}
+                  onChange={(e) => setPinInput(e.target.value)}
+                  placeholder="Digite o PIN..."
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-zinc-700 bg-transparent text-center text-lg tracking-widest"
+                />
+                <button type="submit" className="w-full py-2 rounded-xl bg-amber-600 text-white text-xs font-semibold">
+                  Desbloquear Cofre Privado
+                </button>
+              </form>
+            ) : (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (newPin.trim().length < 4) {
+                    alert('Escolha um PIN de pelo menos 4 dígitos.');
+                    return;
+                  }
+                  onSetPin(newPin.trim());
+                  onUnlock();
+                  onClose();
+                }}
+                className="space-y-3"
+              >
+                <p className="text-xs text-slate-500">Defina um PIN para proteger suas pastas e tarefas no cofre:</p>
+                <input
+                  type="password"
+                  maxLength={8}
+                  required
+                  value={newPin}
+                  onChange={(e) => setNewPin(e.target.value)}
+                  placeholder="Criar PIN (mín. 4 dígitos)..."
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-zinc-700 bg-transparent text-center text-lg tracking-widest"
+                />
+                <button type="submit" className="w-full py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold">
+                  Salvar PIN e Continuar
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    // =========================================================================
+    // REVISÃO DE QUARTA-FEIRA (ITENS PARA VER DEPOIS SEM DATA)
+    // =========================================================================
+    const WednesdayReviewModal = ({ isOpen, onClose, items, onConfirmSeen, onSnoozeItems }) => {
+      const [selectedIds, setSelectedIds] = useState([]);
+      const [customDate, setCustomDate] = useState('');
+
+      const unseenLaterItems = useMemo(
+        () => items.filter((it) => it.watchLater && !it.seenConfirmed && !it.archivedToHistory),
+        [items]
+      );
+
+      useEffect(() => {
+        if (isOpen) {
+          setSelectedIds(unseenLaterItems.map((i) => i.id));
+        }
+      }, [isOpen, unseenLaterItems]);
+
+      if (!isOpen) return null;
+
+      const toggleSelect = (id) => {
+        setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+      };
+
+      const nextWednesdayIso = () => {
+        const d = new Date();
+        const diff = (3 - d.getDay() + 7) % 7 || 7;
+        d.setDate(d.getDate() + diff);
+        return d.toISOString().slice(0, 10);
+      };
+
+      return (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl max-w-lg w-full p-6 border border-slate-200 dark:border-zinc-800 shadow-2xl my-8 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3">
+              <div>
+                <h3 className="text-base font-bold flex items-center gap-2">
+                  <Icon name="calendar" size={18} className="text-indigo-500" />
+                  Check-in de Quarta: Itens "Ver Depois"
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Itens marcados para ler/assistir depois sem data fixa. Deseja ver algum hoje?
+                </p>
+              </div>
+              <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800">
+                <Icon name="x" size={16} />
+              </button>
+            </div>
+
+            {unseenLaterItems.length === 0 ? (
+              <p className="text-xs text-slate-400 py-6 text-center">Nenhum item pendente para revisão hoje!</p>
+            ) : (
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {unseenLaterItems.map((it) => (
+                  <label
+                    key={it.id}
+                    className="flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 cursor-pointer hover:bg-slate-50 dark:hover:bg-zinc-950"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(it.id)}
+                      onChange={() => toggleSelect(it.id)}
+                      className="rounded text-indigo-600"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold truncate">{it.title}</p>
+                      <p className="text-[11px] text-slate-400 truncate">{it.whySaved || it.whatIsIt}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            <div className="pt-3 border-t border-slate-100 dark:border-zinc-800 space-y-3">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => {
+                    onConfirmSeen(selectedIds);
+                    onClose();
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold"
+                >
+                  Marcar Selecionados como Vistos ({selectedIds.length})
+                </button>
+                <button
+                  onClick={() => {
+                    onSnoozeItems(unseenLaterItems.map((i) => i.id), nextWednesdayIso());
+                    onClose();
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 text-xs font-semibold"
+                >
+                  Lembrar Próxima Quarta
+                </button>
+                <button
+                  onClick={onClose}
+                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-zinc-700 text-xs"
+                >
+                  Nenhum Hoje
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs">
+                <span>Escolher outro dia:</span>
+                <input
+                  type="date"
+                  value={customDate}
+                  onChange={(e) => setCustomDate(e.target.value)}
+                  className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-zinc-700 bg-transparent"
+                />
+                <button
+                  onClick={() => {
+                    if (!customDate) return;
+                    onSnoozeItems(unseenLaterItems.map((i) => i.id), customDate);
+                    onClose();
+                  }}
+                  className="px-3 py-1 rounded-lg bg-slate-900 text-white dark:bg-zinc-100 dark:text-zinc-900 font-semibold"
+                >
+                  Agendar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // =========================================================================
+    // ÁRVORE DE PASTAS COM MENU DE CONTEXTO
+    // =========================================================================
+    const FolderTreeSidebar = ({
+      folders,
+      selectedFolderId,
+      onSelectFolder,
+      onCreateFolder,
+      onEditFolder,
+      onDeleteFolder,
+      onAddFolderTask,
+      onMoveFolderOrder,
+      isPrivateMode
+    }) => {
+      const [contextMenu, setContextMenu] = useState(null);
+      const [editingFolderId, setEditingFolderId] = useState(null);
+      const [editName, setEditName] = useState('');
+      const [creatingParentId, setCreatingParentId] = useState(null);
+      const [newFolderName, setNewFolderName] = useState('');
+      const longPressTimer = useRef(null);
+
+      const scopedFolders = folders.filter((f) => Boolean(f.isPrivate) === Boolean(isPrivateMode));
+
+      const handleTouchStart = (folder, e) => {
+        longPressTimer.current = setTimeout(() => {
+          const touch = e.touches[0];
+          setContextMenu({ folder, x: touch.clientX, y: touch.clientY });
+        }, 550);
+      };
+
+      const handleTouchEnd = () => {
+        if (longPressTimer.current) clearTimeout(longPressTimer.current);
+      };
+
+      const renderBranch = (parentId = null, depth = 0) => {
+        const children = scopedFolders.filter((f) => f.parentId === parentId);
+        return (
+          <div className={depth > 0 ? 'ml-3 pl-2.5 border-l border-slate-200 dark:border-zinc-800 space-y-1 mt-1' : 'space-y-1'}>
+            {children.map((folder) => {
+              const isSelected = selectedFolderId === folder.id;
+              const isEditing = editingFolderId === folder.id;
+
+              return (
+                <div key={folder.id} className="relative">
+                  {isEditing ? (
+                    <div className="flex gap-1 py-1">
+                      <input
+                        autoFocus
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            onEditFolder(folder.id, editName);
+                            setEditingFolderId(null);
+                          }
+                        }}
+                        className="w-full text-xs px-2 py-1 rounded border border-indigo-500 bg-white dark:bg-zinc-900"
+                      />
+                      <button
+                        onClick={() => {
+                          onEditFolder(folder.id, editName);
+                          setEditingFolderId(null);
+                        }}
+                        className="px-2 py-1 bg-indigo-600 text-white text-xs rounded"
+                      >
+                        OK
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      draggable
+                      onDragStart={(e) => e.dataTransfer.setData('text/plain', `folder:${folder.id}`)}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const data = e.dataTransfer.getData('text/plain');
+                        if (!data) return;
+                        if (data.startsWith('item:')) {
+                          const itemId = data.split(':')[1];
+                          window.dispatchEvent(new CustomEvent('megabrain:move-item', { detail: { itemId, folderId: folder.id } }));
+                        } else if (data.startsWith('folder:')) {
+                          const draggedFolderId = data.split(':')[1];
+                          if (draggedFolderId !== folder.id && onMoveFolderOrder) {
+                            onMoveFolderOrder(draggedFolderId, folder.id);
+                          }
+                        }
+                      }}
+                      onTouchStart={(e) => handleTouchStart(folder, e)}
+                      onTouchEnd={handleTouchEnd}
+                      onClick={() => onSelectFolder(folder.id)}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        setContextMenu({ folder, x: e.clientX, y: e.clientY });
+                      }}
+                      className={`group flex items-center justify-between px-2.5 py-1.5 rounded-lg text-sm cursor-pointer transition select-none ${
+                        isSelected
+                          ? 'bg-indigo-600 text-white font-medium shadow-sm'
+                          : 'text-slate-700 dark:text-zinc-300 hover:bg-slate-200/70 dark:hover:bg-zinc-800/80'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <Icon name={folder.isPrivate ? 'lock' : 'folder'} size={15} className={isSelected ? 'text-white' : 'text-indigo-500'} />
+                        <span className="truncate">{folder.name}</span>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setContextMenu({ folder, x: rect.left, y: rect.bottom + 5 });
+                        }}
+                        className={`p-1 rounded opacity-75 group-hover:opacity-100 ${isSelected ? 'text-white' : 'text-slate-500'}`}
+                      >
+                        <Icon name="more-vertical" size={14} />
+                      </button>
+                    </div>
+                  )}
+
+                  {creatingParentId === folder.id && (
+                    <div className="mt-1 ml-4 flex gap-1">
+                      <input
+                        autoFocus
+                        type="text"
+                        value={newFolderName}
+                        onChange={(e) => setNewFolderName(e.target.value)}
+                        placeholder="Nome da subpasta..."
+                        className="w-full text-xs px-2 py-1 rounded border border-indigo-400 bg-white dark:bg-zinc-900"
+                      />
+                      <button
+                        onClick={() => {
+                          if (newFolderName.trim()) {
+                            onCreateFolder(newFolderName.trim(), folder.id, isPrivateMode);
+                            setNewFolderName('');
+                            setCreatingParentId(null);
+                          }
+                        }}
+                        className="px-2 py-1 bg-indigo-600 text-white text-xs rounded"
+                      >
+                        Criar
+                      </button>
+                    </div>
+                  )}
+
+                  {renderBranch(folder.id, depth + 1)}
+                </div>
+              );
+            })}
+          </div>
+        );
+      };
+
+      return (
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800 p-3.5 shadow-material">
+          <div className="flex items-center justify-between mb-2.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              {isPrivateMode ? 'Pastas do Cofre 🔒' : 'Pastas & Subpastas'}
+            </span>
+            <button
+              onClick={() => {
+                const name = prompt('Nome da nova pasta raiz:');
+                if (name) onCreateFolder(name, null, isPrivateMode);
+              }}
+              className="text-xs flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-medium"
+            >
+              <Icon name="plus" size={14} /> Nova
+            </button>
+          </div>
+
+          <button
+            onClick={() => onSelectFolder(null)}
+            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm mb-1.5 transition ${
+              selectedFolderId === null
+                ? 'bg-slate-900 text-white dark:bg-zinc-100 dark:text-zinc-900 font-medium'
+                : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800'
+            }`}
+          >
+            <Icon name="layers" size={15} />
+            <span>Todas as Pastas</span>
+          </button>
+
+          {renderBranch(null, 0)}
+
+          {contextMenu && (
+            <div className="fixed inset-0 z-50" onClick={() => setContextMenu(null)}>
+              <div
+                style={{ top: Math.min(contextMenu.y, window.innerHeight - 240), left: Math.min(contextMenu.x, window.innerWidth - 200) }}
+                className="absolute bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-2xl py-1.5 w-48 text-xs z-50"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="px-3 py-1 font-bold text-slate-400 border-b border-slate-100 dark:border-zinc-800 truncate">
+                  {contextMenu.folder.name}
+                </div>
+                <button
+                  onClick={() => {
+                    setEditingFolderId(contextMenu.folder.id);
+                    setEditName(contextMenu.folder.name);
+                    setContextMenu(null);
+                  }}
+                  className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-zinc-800 flex items-center gap-2"
+                >
+                  <Icon name="pencil" size={14} /> Editar / Renomear Pasta
+                </button>
+                <button
+                  onClick={() => {
+                    setCreatingParentId(contextMenu.folder.id);
+                    setNewFolderName('');
+                    setContextMenu(null);
+                  }}
+                  className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-zinc-800 flex items-center gap-2"
+                >
+                  <Icon name="folder-plus" size={14} /> Criar Subpasta
+                </button>
+                <button
+                  onClick={() => {
+                    onAddFolderTask(contextMenu.folder.id);
+                    setContextMenu(null);
+                  }}
+                  className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-zinc-800 flex items-center gap-2"
+                >
+                  <Icon name="check-square" size={14} /> Adicionar Tarefa aqui
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm(`Deseja excluir a pasta "${contextMenu.folder.name}"?`)) {
+                      onDeleteFolder(contextMenu.folder.id);
+                    }
+                    setContextMenu(null);
+                  }}
+                  className="w-full text-left px-3 py-2 hover:bg-rose-50 text-rose-600 flex items-center gap-2 border-t border-slate-100 dark:border-zinc-800"
+                >
+                  <Icon name="trash-2" size={14} /> Excluir Pasta
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // =========================================================================
+    // POMODORO TIMER COM NOTIFICAÇÃO CONFIGURÁVEL
+    // =========================================================================
+    const PomodoroWidget = ({ onNotify }) => {
+      const [secondsLeft, setSecondsLeft] = useState(25 * 60);
+      const [running, setRunning] = useState(false);
+      const [mode, setMode] = useState('focus');
+      const [alertMode, setAlertMode] = useState('vibrate_sound');
+
+      useEffect(() => {
+        if (!running) return;
+        const timer = setInterval(() => {
+          setSecondsLeft((prev) => {
+            if (prev <= 1) {
+              setRunning(false);
+              onNotify(
+                mode === 'focus' ? '⏰ Pomodoro Concluído!' : '⚡ Pausa Finalizada!',
+                mode === 'focus' ? 'Hora da pausa de 5 minutos.' : 'De volta ao foco!',
+                alertMode
+              );
+              return mode === 'focus' ? 5 * 60 : 25 * 60;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+        return () => clearInterval(timer);
+      }, [running, mode, alertMode]);
+
+      const mins = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
+      const secs = String(secondsLeft % 60).padStart(2, '0');
+
+      return (
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800 p-4 shadow-material">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <Icon name="timer" size={14} className="text-indigo-500" /> Foco Pomodoro
+            </span>
+            <div className="flex gap-1">
+              <button
+                onClick={() => { setRunning(false); setMode('focus'); setSecondsLeft(25 * 60); }}
+                className={`text-[11px] px-2 py-0.5 rounded-full ${mode === 'focus' ? 'bg-indigo-100 text-indigo-700 font-bold' : 'text-slate-500'}`}
+              >25m</button>
+              <button
+                onClick={() => { setRunning(false); setMode('break'); setSecondsLeft(5 * 60); }}
+                className={`text-[11px] px-2 py-0.5 rounded-full ${mode === 'break' ? 'bg-emerald-100 text-emerald-700 font-bold' : 'text-slate-500'}`}
+              >5m</button>
+            </div>
+          </div>
+
+          <div className="text-3xl font-bold tracking-tight text-center my-2 font-mono">
+            {mins}:{secs}
+          </div>
+
+          <div className="mb-2.5">
+            <select
+              value={alertMode}
+              onChange={(e) => setAlertMode(e.target.value)}
+              className="w-full text-[11px] px-2 py-1 rounded-lg border border-slate-200 dark:border-zinc-700 bg-transparent"
+            >
+              {NOTIF_MODES.map((m) => (
+                <option key={m.id} value={m.id} className="dark:bg-zinc-900">Alerta Timer: {m.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => setRunning(!running)}
+              className="flex-1 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-medium flex items-center justify-center gap-1"
+            >
+              <Icon name={running ? 'pause' : 'play'} size={14} />
+              {running ? 'Pausar' : 'Iniciar'}
+            </button>
+            <button
+              onClick={() => { setRunning(false); setSecondsLeft(mode === 'focus' ? 25 * 60 : 5 * 60); }}
+              className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-zinc-700 text-xs"
+            >
+              Resetar
+            </button>
+          </div>
+        </div>
+      );
+    };
+
+    // =========================================================================
+    // CARD DE ITEM (EXIBE MÚLTIPLAS IMAGENS, ÁUDIOS, NOTAS LIVRES E COFRE)
+    // =========================================================================
+    const BrainItemCard = ({
+      item,
+      folderPath,
+      viewMode,
+      onToggleDone,
+      onCompleteAndDelete,
+      onToggleVault,
+      onEdit,
+      onDelete,
+      onTagClick,
+      draggable,
+      onDragStart,
+      onDragOver,
+      onDrop
+    }) => {
+      const pMeta = PRIORITY_META[item.priority] || PRIORITY_META.later;
+      const itemImages = useMemo(() => {
+        const list = [];
+        if (item.thumbnail) list.push(item.thumbnail);
+        if (Array.isArray(item.images)) {
+          item.images.forEach((img) => {
+            const src = typeof img === 'string' ? img : img?.src;
+            if (src && !list.includes(src)) list.push(src);
+          });
+        }
+        return list;
+      }, [item.thumbnail, item.images]);
+
+      const itemAudios = useMemo(() => {
+        if (!Array.isArray(item.audios)) return [];
+        return item.audios.map((a, idx) =>
+          typeof a === 'string'
+            ? { id: `aud-${idx}`, name: `Áudio ${idx + 1}`, src: a }
+            : { id: a.id || `aud-${idx}`, name: a.name || `Áudio ${idx + 1}`, src: a.src }
+        );
+      }, [item.audios]);
+
+      const itemNotes = useMemo(() => {
+        if (!Array.isArray(item.freeNotes)) return [];
+        return item.freeNotes.filter((n) => typeof n === 'string' && n.trim());
+      }, [item.freeNotes]);
+
+      if (viewMode === 'thumb') {
+        const firstThumb = itemImages[0];
+        return (
+          <div
+            draggable={draggable}
+            onDragStart={onDragStart}
+            onDragOver={onDragOver}
+            onDrop={onDrop}
+            onClick={() => onEdit(item)}
+            className="group relative aspect-square rounded-2xl overflow-hidden bg-slate-200 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-800 cursor-pointer shadow-material"
+          >
+            {firstThumb ? (
+              <img
+                src={firstThumb}
+                alt={item.title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center">
+                <Icon name={itemAudios.length > 0 ? 'mic' : itemNotes.length > 0 ? 'file-text' : 'bookmark'} size={24} className="text-indigo-500 mb-1" />
+                <span className="text-xs font-semibold line-clamp-2">{item.title}</span>
+              </div>
+            )}
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent p-2.5 text-white">
+              <p className="text-xs font-semibold truncate">{item.title}</p>
+            </div>
+          </div>
+        );
+      }
+
+      if (viewMode === 'list') {
+        return (
+          <div
+            draggable={draggable}
+            onDragStart={onDragStart}
+            onDragOver={onDragOver}
+            onDrop={onDrop}
+            className={`bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-zinc-800 px-3.5 py-2.5 flex items-center justify-between gap-3 shadow-material ${pMeta.border}`}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                onClick={() => onToggleDone(item)}
+                className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                  item.priority === 'done' ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300'
+                }`}
+              >
+                {item.priority === 'done' && <Icon name="check" size={12} />}
+              </button>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`text-sm font-semibold truncate ${item.priority === 'done' ? 'line-through opacity-60' : ''}`}>
+                    {item.title}
+                  </span>
+                  {folderPath && <span className="text-[11px] text-slate-400">• 📁 {folderPath}</span>}
+                  {itemNotes.length > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-semibold">{itemNotes.length} nota(s)</span>}
+                  {itemAudios.length > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 font-semibold">{itemAudios.length} áudio(s)</span>}
+                  {itemImages.length > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 font-semibold">{itemImages.length} foto(s)</span>}
+                </div>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {(item.tags || []).map((t, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => onTagClick(t)}
+                      className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400"
+                    >
+                      #{t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={() => onToggleVault(item)}
+                title={item.isPrivate ? 'Tirar do Cofre' : 'Colocar no Cofre'}
+                className="p-1.5 rounded-lg hover:bg-amber-50 text-amber-600"
+              >
+                <Icon name={item.isPrivate ? 'unlock' : 'lock'} size={14} />
+              </button>
+              <button onClick={() => onEdit(item)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-500">
+                <Icon name="pencil" size={14} />
+              </button>
+              <button onClick={() => onDelete(item.id)} className="p-1.5 rounded-lg hover:bg-rose-50 text-rose-500">
+                <Icon name="trash-2" size={14} />
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div
+          draggable={draggable}
+          onDragStart={onDragStart}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+          className={`group bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800 overflow-hidden shadow-material hover:shadow-material-lg transition-all flex flex-col justify-between ${pMeta.border}`}
+        >
+          <div>
+            {itemImages.length > 0 && (
+              <div className="relative h-36 w-full overflow-hidden bg-slate-100 dark:bg-zinc-800">
+                <img
+                  src={itemImages[0]}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
+                <div className="absolute top-2.5 left-2.5 flex gap-1.5">
+                  <span className={`text-[11px] font-medium px-2.5 py-0.5 rounded-full border backdrop-blur-md shadow-sm ${pMeta.badge}`}>
+                    {pMeta.dot} {pMeta.label.split('/')[0]}
+                  </span>
+                  {itemImages.length > 1 && (
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-black/65 text-white">
+                      +{itemImages.length - 1} foto(s)
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="p-4">
+              {itemImages.length === 0 && (
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className={`text-[11px] font-medium px-2.5 py-0.5 rounded-full border ${pMeta.badge}`}>
+                    {pMeta.dot} {pMeta.label.split('/')[0]}
+                  </span>
+                  {item.watchLater && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 font-semibold">
+                      Ver Depois
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-medium mb-1">
+                <span>{item.genreOrTopic || 'Geral'}</span>
+                {folderPath && <span className="text-slate-400">• 📁 {folderPath}</span>}
+              </div>
+
+              <h3 className={`font-semibold text-base leading-snug mb-2 ${item.priority === 'done' ? 'line-through opacity-60' : ''}`}>
+                {item.title}
+              </h3>
+
+              {(item.whatIsIt || item.whySaved) && (
+                <div className="space-y-1 bg-slate-50 dark:bg-zinc-950/70 rounded-xl p-2.5 text-xs mb-2.5">
+                  {item.whatIsIt && <p className="text-slate-600 dark:text-zinc-300"><strong>O que é:</strong> {item.whatIsIt}</p>}
+                  {item.whySaved && <p className="text-slate-600 dark:text-zinc-300"><strong>Por que salvei:</strong> {item.whySaved}</p>}
+                </div>
+              )}
+
+              {/* Notas livres adicionadas na tarefa */}
+              {itemNotes.length > 0 && (
+                <div className="space-y-1.5 mb-2.5">
+                  <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 block">
+                    📝 Notas da tarefa ({itemNotes.length}):
+                  </span>
+                  {itemNotes.map((noteText, nIdx) => (
+                    <div
+                      key={nIdx}
+                      className="text-xs p-2 rounded-lg bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/50 text-slate-700 dark:text-zinc-200 whitespace-pre-wrap"
+                    >
+                      {noteText}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Múltiplos áudios */}
+              {itemAudios.length > 0 && (
+                <div className="space-y-2 mb-2.5">
+                  <span className="text-[11px] font-semibold text-rose-700 dark:text-rose-300 block">
+                    🎤 Áudios ({itemAudios.length}):
+                  </span>
+                  {itemAudios.map((aud) => (
+                    <div key={aud.id} className="bg-slate-50 dark:bg-zinc-950 p-2 rounded-lg border border-slate-200/70 dark:border-zinc-800">
+                      <p className="text-[11px] font-medium text-slate-500 mb-1 truncate">{aud.name}</p>
+                      <audio controls src={aud.src} className="w-full h-8" />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Galeria de fotos extras */}
+              {itemImages.length > 1 && (
+                <div className="flex gap-1.5 overflow-x-auto pb-1 mb-2">
+                  {itemImages.slice(1).map((imgSrc, iIdx) => (
+                    <img
+                      key={iIdx}
+                      src={imgSrc}
+                      alt={`Foto ${iIdx + 2}`}
+                      className="h-14 w-14 rounded-lg object-cover border border-slate-200 dark:border-zinc-700 shrink-0"
+                    />
+                  ))}
+                </div>
+              )}
+
+              {item.assignedPersons && item.assignedPersons.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {item.assignedPersons.map((p, idx) => (
+                    <span key={idx} className="text-[11px] px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300 font-medium">
+                      👤 {p}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {item.tags && item.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-3">
+                  {item.tags.map((tag, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => onTagClick(tag)}
+                      className="text-[11px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+                    >
+                      #{tag}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="px-4 py-2.5 bg-slate-50/80 dark:bg-zinc-950/60 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {item.url && (
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-xs font-medium flex items-center gap-1"
+                >
+                  <Icon name="external-link" size={13} /> Abrir
+                </a>
+              )}
+              <button
+                onClick={() => onToggleDone(item)}
+                className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-xs font-medium flex items-center gap-1"
+              >
+                <Icon name="check-circle" size={13} /> {item.priority === 'done' ? 'Reabrir' : 'Concluir'}
+              </button>
+              <button
+                onClick={() => onToggleVault(item)}
+                className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200/70 dark:border-amber-800/60 text-xs font-medium flex items-center gap-1"
+              >
+                <Icon name={item.isPrivate ? 'unlock' : 'lock'} size={13} />
+                {item.isPrivate ? 'Tirar do Cofre' : 'Colocar no Cofre'}
+              </button>
+              {onCompleteAndDelete && (
+                <button
+                  onClick={() => onCompleteAndDelete(item)}
+                  title="Concluir e apagar do mural"
+                  className="px-2 py-1 rounded-lg bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 text-[11px] font-medium"
+                >
+                  Concluir & Apagar
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button onClick={() => onEdit(item)} className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-500">
+                <Icon name="pencil" size={14} />
+              </button>
+              <button onClick={() => onDelete(item.id)} className="p-1.5 rounded-lg hover:bg-rose-50 text-rose-500">
+                <Icon name="trash-2" size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // =========================================================================
+    // MODAL DE CRIAÇÃO / EDIÇÃO COM MÚLTIPLOS ÁUDIOS, NOTAS LIVRES, CÂMERA/FOTOS E COFRE
+    // =========================================================================
+    const ItemFormModal = ({ isOpen, onClose, onSave, folders, initialItem, isPrivateMode, defaultFolderId }) => {
+      const [kind, setKind] = useState('link_media');
+      const [title, setTitle] = useState('');
+      const [url, setUrl] = useState('');
+      const [thumbnail, setThumbnail] = useState('');
+
+      // Múltiplas fotos / imagens
+      const [images, setImages] = useState([]);
+      const cameraInputRef = useRef(null);
+      const galleryInputRef = useRef(null);
+
+      // Múltiplos áudios
+      const [audios, setAudios] = useState([]);
+      const [recording, setRecording] = useState(false);
+      const mediaRecorderRef = useRef(null);
+      const audioChunksRef = useRef([]);
+
+      // Múltiplas notas livres
+      const [freeNotes, setFreeNotes] = useState([]);
+      const [noteDraft, setNoteDraft] = useState('');
+
+      const [category, setCategory] = useState('links_gerais');
+      const [genreOrTopic, setGenreOrTopic] = useState('');
+      const [whatIsIt, setWhatIsIt] = useState('');
+      const [whySaved, setWhySaved] = useState('');
+      const [tagsInput, setTagsInput] = useState('');
+      const [folderId, setFolderId] = useState(defaultFolderId || '');
+      const [priority, setPriority] = useState('later');
+      const [notificationMode, setNotificationMode] = useState('none');
+      const [watchLater, setWatchLater] = useState(false);
+      const [itemIsPrivate, setItemIsPrivate] = useState(Boolean(isPrivateMode));
+      const [assignedPersonInput, setAssignedPersonInput] = useState('');
+      const [assignedPersons, setAssignedPersons] = useState([]);
+      const [fetchingThumb, setFetchingThumb] = useState(false);
+
+      useEffect(() => {
+        if (initialItem) {
+          setKind(initialItem.kind || 'link_media');
+          setTitle(initialItem.title || '');
+          setUrl(initialItem.url || '');
+          setThumbnail(initialItem.thumbnail || '');
+          const loadedImgs = Array.isArray(initialItem.images)
+            ? initialItem.images.map((im, idx) =>
+                typeof im === 'string' ? { id: `img-${idx}`, src: im, name: `Foto ${idx + 1}` } : im
+              )
+            : [];
+          setImages(loadedImgs);
+
+          const loadedAuds = Array.isArray(initialItem.audios)
+            ? initialItem.audios.map((au, idx) =>
+                typeof au === 'string' ? { id: `aud-${idx}`, src: au, name: `Áudio ${idx + 1}` } : au
+              )
+            : [];
+          setAudios(loadedAuds);
+
+          setFreeNotes(Array.isArray(initialItem.freeNotes) ? initialItem.freeNotes : []);
+          setNoteDraft('');
+          setCategory(initialItem.category || 'links_gerais');
+          setGenreOrTopic(initialItem.genreOrTopic || '');
+          setWhatIsIt(initialItem.whatIsIt || '');
+          setWhySaved(initialItem.whySaved || '');
+          setTagsInput((initialItem.tags || []).join(', '));
+          setFolderId(initialItem.folderId || defaultFolderId || '');
+          setPriority(initialItem.priority || 'later');
+          setNotificationMode(initialItem.notificationMode || 'none');
+          setWatchLater(Boolean(initialItem.watchLater));
+          setItemIsPrivate(Boolean(initialItem.isPrivate));
+          setAssignedPersons(initialItem.assignedPersons || []);
+        } else {
+          setKind('link_media');
+          setTitle('');
+          setUrl('');
+          setThumbnail('');
+          setImages([]);
+          setAudios([]);
+          setFreeNotes([]);
+          setNoteDraft('');
+          setCategory('links_gerais');
+          setGenreOrTopic('');
+          setWhatIsIt('');
+          setWhySaved('');
+          setTagsInput('');
+          setFolderId(defaultFolderId || '');
+          setPriority('later');
+          setNotificationMode('none');
+          setWatchLater(false);
+          setItemIsPrivate(Boolean(isPrivateMode));
+          setAssignedPersons([]);
+        }
+      }, [initialItem, isOpen, defaultFolderId, isPrivateMode]);
+
+      const handleUrlBlur = async () => {
+        if (!url || thumbnail) return;
+        setFetchingThumb(true);
+        const thumb = await fetchAutoThumbnail(url);
+        if (thumb) setThumbnail(thumb);
+        setFetchingThumb(false);
+      };
+
+      const appendImagesFromFiles = (fileList) => {
+        if (!fileList || fileList.length === 0) return;
+        Array.from(fileList).forEach((file) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            setImages((prev) => [
+              ...prev,
+              {
+                id: `img-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                name: file.name || 'Foto',
+                src: ev.target.result
+              }
+            ]);
+          };
+          reader.readAsDataURL(file);
+        });
+      };
+
+      const appendAudioFromFile = (file) => {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          setAudios((prev) => [
+            ...prev,
+            {
+              id: `aud-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+              name: file.name || `Áudio ${prev.length + 1}`,
+              src: ev.target.result
+            }
+          ]);
+        };
+        reader.readAsDataURL(file);
+      };
+
+      const startRecordingAudio = async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const recorder = new MediaRecorder(stream);
+          audioChunksRef.current = [];
+          recorder.ondataavailable = (e) => {
+            if (e.data.size > 0) audioChunksRef.current.push(e.data);
+          };
+          recorder.onstop = () => {
+            const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              setAudios((prev) => [
+                ...prev,
+                {
+                  id: `aud-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                  name: `Gravação de voz ${prev.length + 1}`,
+                  src: ev.target.result
+                }
+              ]);
+            };
+            reader.readAsDataURL(blob);
+            stream.getTracks().forEach((t) => t.stop());
+          };
+          recorder.start();
+          mediaRecorderRef.current = recorder;
+          setRecording(true);
+        } catch (err) {
+          alert('Não foi possível acessar o microfone.');
+        }
+      };
+
+      const stopRecordingAudio = () => {
+        if (mediaRecorderRef.current && recording) {
+          mediaRecorderRef.current.stop();
+          setRecording(false);
+        }
+      };
+
+      const handleAddFreeNote = () => {
+        if (!noteDraft.trim()) return;
+        setFreeNotes((prev) => [...prev, noteDraft.trim()]);
+        setNoteDraft('');
+      };
+
+      if (!isOpen) return null;
+
+      const scopedFolders = folders.filter((f) => Boolean(f.isPrivate) === Boolean(itemIsPrivate));
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!title.trim()) return;
+
+        const finalPersons = [...assignedPersons];
+        if (assignedPersonInput.trim() && !finalPersons.includes(assignedPersonInput.trim())) {
+          finalPersons.push(assignedPersonInput.trim());
+        }
+
+        const finalNotes = [...freeNotes];
+        if (noteDraft.trim()) {
+          finalNotes.push(noteDraft.trim());
+        }
+
+        const parsedTags = tagsInput
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean);
+
+        const payload = {
+          ...(initialItem || {}),
+          id: initialItem ? initialItem.id : `item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          kind,
+          title: title.trim(),
+          url: url.trim() || undefined,
+          thumbnail: thumbnail.trim() || (images[0]?.src) || undefined,
+          images,
+          audios,
+          freeNotes: finalNotes,
+          category,
+          genreOrTopic: genreOrTopic.trim() || 'Geral',
+          whatIsIt: whatIsIt.trim(),
+          whySaved: whySaved.trim(),
+          tags: parsedTags,
+          folderId: folderId || null,
+          priority,
+          notificationMode,
+          watchLater,
+          isPrivate: Boolean(itemIsPrivate),
+          assignedPersons: finalPersons,
+          seenConfirmed: initialItem ? initialItem.seenConfirmed : false,
+          archivedToHistory: false,
+          createdAt: initialItem ? initialItem.createdAt : new Date().toISOString(),
+          order: initialItem ? initialItem.order : 0,
+        };
+
+        onSave(payload);
+        onClose();
+      };
+
+      return (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 max-w-2xl w-full p-6 shadow-2xl my-8">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800">
+              <h2 className="text-lg font-bold">
+                {initialItem ? 'Editar Tarefa / Item' : 'Nova Tarefa / Item'}
+              </h2>
+              <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800">
+                <Icon name="x" size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+              <div>
+                <label className="block text-xs font-semibold mb-1">Título da Tarefa / Item *</label>
+                <input
+                  required
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Ex: Visita ao médico, Estudo React, Lembrete..."
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-zinc-700 bg-transparent text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1">URL (Opcional — Gerador Automático de Capa)</label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    onBlur={handleUrlBlur}
+                    placeholder="https://..."
+                    className="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-zinc-700 bg-transparent text-sm"
+                  />
+                  {fetchingThumb && (
+                    <span className="text-xs text-indigo-500 flex items-center">Buscando capa...</span>
+                  )}
+                </div>
+              </div>
+
+              {/* SEÇÃO 1: MÚLTIPLAS NOTAS LIVRES */}
+              <div className="p-3.5 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-800/50 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                    <Icon name="file-text" size={14} /> Notas Livres na Tarefa ({freeNotes.length})
+                  </span>
+                </div>
+                <textarea
+                  rows={2}
+                  value={noteDraft}
+                  onChange={(e) => setNoteDraft(e.target.value)}
+                  placeholder="Escreva uma nota livre aqui..."
+                  className="w-full px-3 py-2 rounded-xl border border-amber-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddFreeNote}
+                  className="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-semibold flex items-center gap-1"
+                >
+                  <Icon name="plus" size={13} /> Adicionar Nota
+                </button>
+
+                {freeNotes.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    {freeNotes.map((n, idx) => (
+                      <div key={idx} className="flex items-start justify-between gap-2 p-2 rounded-lg bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-xs">
+                        <span className="whitespace-pre-wrap flex-1">{n}</span>
+                        <button
+                          type="button"
+                          onClick={() => setFreeNotes(freeNotes.filter((_, i) => i !== idx))}
+                          className="text-rose-500 hover:bg-rose-50 p-1 rounded"
+                        >
+                          <Icon name="trash-2" size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* SEÇÃO 2: MÚLTIPLOS ÁUDIOS (GRAVAR OU TRAZER ARQUIVO) */}
+              <div className="p-3.5 rounded-xl bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200/70 dark:border-rose-800/50 space-y-2.5">
+                <span className="text-xs font-bold text-rose-900 dark:text-rose-200 flex items-center gap-1.5">
+                  <Icon name="mic" size={14} /> Áudios da Tarefa — Gravar ou Trazer Arquivo ({audios.length})
+                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  {!recording ? (
+                    <button
+                      type="button"
+                      onClick={startRecordingAudio}
+                      className="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-semibold flex items-center gap-1"
+                    >
+                      <Icon name="mic" size={14} /> Gravar Áudio
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={stopRecordingAudio}
+                      className="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-semibold animate-pulse"
+                    >
+                      Parar Gravação
+                    </button>
+                  )}
+
+                  <label className="px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 text-xs font-semibold cursor-pointer flex items-center gap-1">
+                    <Icon name="upload" size={14} /> Trazer Arquivo de Áudio
+                    <input
+                      type="file"
+                      accept="audio/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        appendAudioFromFile(e.target.files?.[0]);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                </div>
+
+                {audios.length > 0 && (
+                  <div className="space-y-2 pt-1">
+                    {audios.map((aud) => (
+                      <div key={aud.id} className="p-2 rounded-lg bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800">
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="font-medium truncate">{aud.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => setAudios(audios.filter((a) => a.id !== aud.id))}
+                            className="text-rose-500 p-1"
+                          >
+                            <Icon name="trash-2" size={13} />
+                          </button>
+                        </div>
+                        <audio controls src={aud.src} className="w-full h-8" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* SEÇÃO 3: MÚLTIPLAS FOTOS / IMAGENS (TIRAR FOTO NA CÂMERA OU ADICIONAR FOTO) */}
+              <div className="p-3.5 rounded-xl bg-sky-50/50 dark:bg-sky-950/20 border border-sky-200/70 dark:border-sky-800/50 space-y-2.5">
+                <span className="text-xs font-bold text-sky-900 dark:text-sky-200 flex items-center gap-1.5">
+                  <Icon name="camera" size={14} /> Fotos & Imagens da Tarefa ({images.length})
+                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="px-3 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-semibold flex items-center gap-1"
+                  >
+                    <Icon name="camera" size={14} /> Tirar Foto
+                  </button>
+                  <input
+                    ref={cameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={(e) => {
+                      appendImagesFromFiles(e.target.files);
+                      e.target.value = '';
+                    }}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => galleryInputRef.current?.click()}
+                    className="px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 text-xs font-semibold flex items-center gap-1"
+                  >
+                    <Icon name="image" size={14} /> Adicionar Foto
+                  </button>
+                  <input
+                    ref={galleryInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      appendImagesFromFiles(e.target.files);
+                      e.target.value = '';
+                    }}
+                  />
+                </div>
+
+                {images.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {images.map((img) => (
+                      <div key={img.id} className="relative group">
+                        <img
+                          src={img.src}
+                          alt={img.name || 'Foto'}
+                          className="h-20 w-20 rounded-xl object-cover border border-slate-200 dark:border-zinc-700"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setImages(images.filter((x) => x.id !== img.id))}
+                          className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white rounded-full p-0.5 shadow"
+                        >
+                          <Icon name="x" size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Pasta</label>
+                  <select
+                    value={folderId}
+                    onChange={(e) => setFolderId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm"
+                  >
+                    <option value="">(Raiz / Solta)</option>
+                    {scopedFolders.map((f) => (
+                      <option key={f.id} value={f.id}>{f.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Notificação / Alerta</label>
+                  <select
+                    value={notificationMode}
+                    onChange={(e) => setNotificationMode(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs"
+                  >
+                    {NOTIF_MODES.map((m) => (
+                      <option key={m.id} value={m.id}>{m.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-4 pt-1">
+                <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={watchLater}
+                    onChange={(e) => setWatchLater(e.target.checked)}
+                    className="rounded text-indigo-600"
+                  />
+                  Marcar como "Ver Depois" (Revisão toda Quarta)
+                </label>
+
+                <label className="flex items-center gap-2 text-xs font-semibold text-amber-700 dark:text-amber-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={itemIsPrivate}
+                    onChange={(e) => setItemIsPrivate(e.target.checked)}
+                    className="rounded text-amber-600"
+                  />
+                  Colocar no Cofre Privado 🔒
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1">Pessoas Vinculadas (Múltiplas)</label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={assignedPersonInput}
+                    onChange={(e) => setAssignedPersonInput(e.target.value)}
+                    placeholder="Nome da pessoa..."
+                    className="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-transparent text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (assignedPersonInput.trim()) {
+                        setAssignedPersons([...assignedPersons, assignedPersonInput.trim()]);
+                        setAssignedPersonInput('');
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-slate-800 text-white text-xs rounded-xl"
+                  >
+                    + Adicionar Pessoa
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {assignedPersons.map((p, idx) => (
+                    <span key={idx} className="text-xs px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300 flex items-center gap-1">
+                      {p}
+                      <button type="button" onClick={() => setAssignedPersons(assignedPersons.filter((_, i) => i !== idx))}>
+                        <Icon name="x" size={12} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1">Tags (separadas por vírgula — ex: Jogo, Terror)</label>
+                <input
+                  type="text"
+                  value={tagsInput}
+                  onChange={(e) => setTagsInput(e.target.value)}
+                  placeholder="Jogo, Terror, Estudo"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-zinc-700 bg-transparent text-sm"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-zinc-800">
+                <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl border text-sm">Cancelar</button>
+                <button type="submit" className="px-5 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold">Salvar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      );
+    };
+
+    // =========================================================================
+    // TOUR GUIADO PELO SITE
+    // =========================================================================
+    const TourModal = ({ isOpen, onClose }) => {
+      const [step, setStep] = useState(0);
+      const steps = [
+        { title: 'Bem-vindo ao Mega Brain v7 🧠', desc: 'Adicione várias notas livres, vários áudios (gravando ou enviando arquivo) e várias fotos (câmera ou galeria) dentro de uma mesma tarefa.' },
+        { title: 'Mover para o Cofre a Qualquer Momento', desc: 'Depois de criar uma tarefa, use o botão "Colocar no Cofre" direto no card ou ao editar.' },
+        { title: 'Modos de Visualização & Reordenação', desc: 'Alterne entre Blocos, Lista e Só Thumb na barra superior e arraste tarefas, pastas e tags.' },
+        { title: 'Revisão de Quarta & Sync Global', desc: 'Revise itens "Ver Depois" toda quarta-feira e sincronize PC e celular pelo Código da Sala.' },
+      ];
+
+      if (!isOpen) return null;
+
+      return (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl max-w-md w-full p-6 text-center shadow-2xl border border-slate-200 dark:border-zinc-800">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-950 text-indigo-600 flex items-center justify-center mx-auto mb-4">
+              <Icon name="sparkles" size={24} />
+            </div>
+            <h3 className="text-lg font-bold">{steps[step].title}</h3>
+            <p className="text-sm text-slate-600 dark:text-zinc-400 mt-2">{steps[step].desc}</p>
+            <div className="flex items-center justify-between mt-6">
+              <span className="text-xs text-slate-400">Passo {step + 1} de {steps.length}</span>
+              <div className="flex gap-2">
+                {step > 0 && (
+                  <button onClick={() => setStep(step - 1)} className="px-3 py-1.5 rounded-xl border text-xs">Anterior</button>
+                )}
+                {step < steps.length - 1 ? (
+                  <button onClick={() => setStep(step + 1)} className="px-4 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-semibold">Próximo</button>
+                ) : (
+                  <button onClick={onClose} className="px-4 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold">Concluir Tour</button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // =========================================================================
+    // APLICAÇÃO PRINCIPAL (MEGA BRAIN V7)
+    // =========================================================================
+    function MegaBrainApp() {
+      const [roomCode, setRoomCode] = useState(() => localStorage.getItem('mega_brain_sync_room') || generateRoomCode());
+      const [roomInput, setRoomInput] = useState(roomCode);
+      const [syncStatus, setSyncStatus] = useState('Sincronizado');
+      const [lastSyncTime, setLastSyncTime] = useState(null);
+      const [toastMsg, setToastMsg] = useState(null);
+      const lastPushRef = useRef(0);
+      const lastPulledAtRef = useRef(0);
+
+      const [state, setState] = useState(() => {
+        try {
+          const saved =
+            localStorage.getItem('mega_brain_v7_state') ||
+            localStorage.getItem('mega_brain_v6_state') ||
+            localStorage.getItem('mega_brain_v4_state');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            return {
+              folders: parsed.folders || INITIAL_FOLDERS,
+              items: parsed.items || INITIAL_ITEMS,
+              history: parsed.history || [],
+              privatePin: parsed.privatePin || null,
+              preferences: {
+                theme: parsed.preferences?.theme || 'light',
+                viewMode: parsed.preferences?.viewMode || 'cards',
+                tagOrder: parsed.preferences?.tagOrder || []
+              },
+              stats: parsed.stats || { completedCount: 0, studiesCount: 0 }
+            };
+          }
+        } catch (e) {}
+        return {
+          folders: INITIAL_FOLDERS,
+          items: INITIAL_ITEMS,
+          history: [],
+          privatePin: null,
+          preferences: { theme: 'light', viewMode: 'cards', tagOrder: [] },
+          stats: { completedCount: 0, studiesCount: 0 }
+        };
+      });
+
+      const [activeTab, setActiveTab] = useState('home');
+      const [isPrivateMode, setIsPrivateMode] = useState(false);
+      const [isPrivateUnlocked, setIsPrivateUnlocked] = useState(false);
+      const [pinModalOpen, setPinModalOpen] = useState(false);
+      const [pendingVaultItem, setPendingVaultItem] = useState(null);
+
+      const [selectedFolderId, setSelectedFolderId] = useState(null);
+      const [searchQuery, setSearchQuery] = useState('');
+      const [activeTagFilter, setActiveTagFilter] = useState(null);
+      const [modalOpen, setModalOpen] = useState(false);
+      const [editingItem, setEditingItem] = useState(null);
+      const [tourOpen, setTourOpen] = useState(false);
+      const [wednesdayOpen, setWednesdayOpen] = useState(false);
+
+      const showToast = (msg) => {
+        setToastMsg(msg);
+        setTimeout(() => setToastMsg(null), 2600);
+      };
+
+      useEffect(() => {
+        localStorage.setItem('mega_brain_sync_room', roomCode);
+      }, [roomCode]);
+
+      const syncToCloud = useCallback(async (newState) => {
+        if (!roomCode) return;
+        setSyncStatus('Enviando...');
+        const now = Date.now();
+        lastPushRef.current = now;
+        const ok = await pushCloudState(roomCode, newState);
+        if (ok) {
+          setSyncStatus('Sincronizado');
+          setLastSyncTime(new Date().toLocaleTimeString());
+        } else {
+          setSyncStatus('Local salvo');
+        }
+      }, [roomCode]);
+
+      const commitState = useCallback((updaterFn) => {
+        setState((prev) => {
+          const next = typeof updaterFn === 'function' ? updaterFn(prev) : updaterFn;
+          try {
+            localStorage.setItem('mega_brain_v7_state', JSON.stringify(next));
+          } catch (e) {}
+          syncToCloud(next);
+          return next;
+        });
+      }, [syncToCloud]);
+
+      const pullFromCloud = useCallback(async () => {
+        if (!roomCode) return;
+        const remote = await pullCloudState(roomCode);
+        if (remote && remote.data && remote.updatedAt > lastPulledAtRef.current) {
+          if (remote.deviceId !== getDeviceId() && remote.updatedAt > lastPushRef.current) {
+            lastPulledAtRef.current = remote.updatedAt;
+            setState(remote.data);
+            try {
+              localStorage.setItem('mega_brain_v7_state', JSON.stringify(remote.data));
+            } catch (e) {}
+            setSyncStatus('Atualizado em tempo real');
+            setLastSyncTime(new Date().toLocaleTimeString());
+          }
+        }
+      }, [roomCode]);
+
+      useEffect(() => {
+        pullFromCloud();
+        const interval = setInterval(pullFromCloud, 3000);
+        const onVis = () => {
+          if (document.visibilityState === 'visible') pullFromCloud();
+        };
+        document.addEventListener('visibilitychange', onVis);
+        window.addEventListener('focus', pullFromCloud);
+        return () => {
+          clearInterval(interval);
+          document.removeEventListener('visibilitychange', onVis);
+          window.removeEventListener('focus', pullFromCloud);
+        };
+      }, [pullFromCloud]);
+
+      useEffect(() => {
+        const handleMove = (e) => {
+          const { itemId, folderId } = e.detail;
+          commitState((prev) => ({
+            ...prev,
+            items: prev.items.map((it) => (it.id === itemId ? { ...it, folderId } : it))
+          }));
+          showToast('Item movido para a pasta!');
+        };
+        window.addEventListener('megabrain:move-item', handleMove);
+        return () => window.removeEventListener('megabrain:move-item', handleMove);
+      }, [commitState]);
+
+      useEffect(() => {
+        if (state.preferences.theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }, [state.preferences.theme]);
+
+      const getFolderPath = (fId) => {
+        if (!fId) return '';
+        const f = state.folders.find((x) => x.id === fId);
+        return f ? f.name : '';
+      };
+
+      const handleSaveItem = (itemData) => {
+        commitState((prev) => {
+          const exists = prev.items.some((i) => i.id === itemData.id);
+          const nextItems = exists
+            ? prev.items.map((i) => (i.id === itemData.id ? itemData : i))
+            : [itemData, ...prev.items];
+          return { ...prev, items: nextItems };
+        });
+        showToast(itemData.isPrivate ? 'Salvo no Cofre Privado!' : 'Item salvo com sucesso!');
+      };
+
+      const applyVaultToggle = (item) => {
+        const nextPrivate = !Boolean(item.isPrivate);
+        commitState((prev) => ({
+          ...prev,
+          items: prev.items.map((i) => (i.id === item.id ? { ...i, isPrivate: nextPrivate, folderId: null } : i))
+        }));
+        showToast(nextPrivate ? 'Item movido para o Cofre!' : 'Item removido do Cofre!');
+      };
+
+      const handleToggleVault = (item) => {
+        if (!state.privatePin) {
+          setPendingVaultItem(item);
+          setPinModalOpen(true);
+          return;
+        }
+        applyVaultToggle(item);
+      };
+
+      const handleDeleteItem = (id) => {
+        commitState((prev) => ({ ...prev, items: prev.items.filter((i) => i.id !== id) }));
+        showToast('Item excluído.');
+      };
+
+      const handleToggleDone = (item) => {
+        const willComplete = item.priority !== 'done';
+        if (willComplete && item.notificationMode) {
+          triggerConfiguredAlert('Tarefa Concluída!', item.title, item.notificationMode);
+        }
+        commitState((prev) => ({
+          ...prev,
+          stats: {
+            ...prev.stats,
+            completedCount: willComplete ? (prev.stats.completedCount || 0) + 1 : prev.stats.completedCount,
+            studiesCount: willComplete && ((item.tags || []).includes('estudos') || (item.genreOrTopic || '').toLowerCase().includes('estud'))
+              ? (prev.stats.studiesCount || 0) + 1
+              : prev.stats.studiesCount,
+          },
+          history: willComplete
+            ? [{ ...item, completedAt: new Date().toISOString() }, ...(prev.history || [])]
+            : prev.history,
+          items: prev.items.map((i) => (i.id === item.id ? { ...i, priority: willComplete ? 'done' : 'attention' } : i))
+        }));
+        showToast(willComplete ? 'Concluído e salvo no histórico!' : 'Reaberto!');
+      };
+
+      const handleCompleteAndDelete = (item) => {
+        commitState((prev) => ({
+          ...prev,
+          stats: {
+            ...prev.stats,
+            completedCount: (prev.stats.completedCount || 0) + 1,
+          },
+          history: [{ ...item, completedAt: new Date().toISOString(), deletedAfterDone: true }, ...(prev.history || [])],
+          items: prev.items.filter((i) => i.id !== item.id)
+        }));
+        showToast('Concluído e removido do mural!');
+      };
+
+      const handleMoveItemOrder = (draggedId, targetId) => {
+        if (!draggedId || draggedId === targetId) return;
+        commitState((prev) => {
+          const list = [...prev.items];
+          const fromIdx = list.findIndex((i) => i.id === draggedId);
+          const toIdx = list.findIndex((i) => i.id === targetId);
+          if (fromIdx === -1 || toIdx === -1) return prev;
+          const [moved] = list.splice(fromIdx, 1);
+          list.splice(toIdx, 0, moved);
+          return { ...prev, items: list };
+        });
+      };
+
+      const handleMoveFolderOrder = (draggedFolderId, targetFolderId) => {
+        commitState((prev) => {
+          const list = [...prev.folders];
+          const fromIdx = list.findIndex((f) => f.id === draggedFolderId);
+          const toIdx = list.findIndex((f) => f.id === targetFolderId);
+          if (fromIdx === -1 || toIdx === -1) return prev;
+          const [moved] = list.splice(fromIdx, 1);
+          list.splice(toIdx, 0, moved);
+          return { ...prev, folders: list };
+        });
+      };
+
+      const allTags = useMemo(() => {
+        const set = new Set();
+        state.items.forEach((it) => {
+          if (Boolean(it.isPrivate) === Boolean(isPrivateMode)) {
+            (it.tags || []).forEach((t) => set.add(t));
+          }
+        });
+        const arr = Array.from(set);
+        const order = state.preferences.tagOrder || [];
+        return arr.sort((a, b) => {
+          const ia = order.indexOf(a);
+          const ib = order.indexOf(b);
+          if (ia === -1 && ib === -1) return a.localeCompare(b);
+          if (ia === -1) return 1;
+          if (ib === -1) return -1;
+          return ia - ib;
+        });
+      }, [state.items, isPrivateMode, state.preferences.tagOrder]);
+
+      const togglePrivateMode = () => {
+        if (!isPrivateMode) {
+          if (isPrivateUnlocked || !state.privatePin) {
+            setIsPrivateMode(true);
+            setSelectedFolderId(null);
+            if (!state.privatePin) setPinModalOpen(true);
+          } else {
+            setPinModalOpen(true);
+          }
+        } else {
+          setIsPrivateMode(false);
+          setSelectedFolderId(null);
+        }
+      };
+
+      const filteredItems = useMemo(() => {
+        return state.items.filter((item) => {
+          if (Boolean(item.isPrivate) !== Boolean(isPrivateMode)) return false;
+          if (isPrivateMode && state.privatePin && !isPrivateUnlocked) return false;
+          if (activeTagFilter && !(item.tags || []).includes(activeTagFilter)) return false;
+          if (selectedFolderId && item.folderId !== selectedFolderId) return false;
+          if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            const matchTitle = (item.title || '').toLowerCase().includes(q);
+            const matchPersons = (item.assignedPersons || []).some((p) => p.toLowerCase().includes(q));
+            const matchTags = (item.tags || []).some((t) => t.toLowerCase().includes(q));
+            const matchNotes = (item.freeNotes || []).some((n) => n.toLowerCase().includes(q));
+            return matchTitle || matchPersons || matchTags || matchNotes;
+          }
+          return true;
+        });
+      }, [state.items, isPrivateMode, isPrivateUnlocked, state.privatePin, activeTagFilter, selectedFolderId, searchQuery]);
+
+      const viewMode = state.preferences.viewMode || 'cards';
+
+      return (
+        <div className="min-h-screen flex flex-col">
+          {toastMsg && (
+            <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white dark:bg-zinc-100 dark:text-zinc-900 px-4 py-2 rounded-full text-xs font-semibold shadow-xl">
+              {toastMsg}
+            </div>
+          )}
+
+          {/* HEADER SUPERIOR */}
+          <header className="sticky top-0 z-30 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md border-b border-slate-200/80 dark:border-zinc-800">
+            <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => setActiveTab('home')}>
+                <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center">
+                  <Icon name="brain" size={20} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-base leading-none">Mega Brain</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-semibold">
+                      {syncStatus}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-400">Sala: {roomCode}</span>
+                </div>
+              </div>
+
+              <div className="flex-1 max-w-md relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <Icon name="search" size={16} />
+                </span>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Pesquisar tarefas, notas, tags ou pessoas..."
+                  className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-100 dark:bg-zinc-900 border-none text-xs outline-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button
+                  onClick={() => setWednesdayOpen(true)}
+                  className="px-2.5 py-2 rounded-xl bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 text-xs font-semibold flex items-center gap-1"
+                >
+                  <Icon name="calendar" size={14} /> Quarta
+                </button>
+                <button
+                  onClick={togglePrivateMode}
+                  className={`px-2.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1 ${
+                    isPrivateMode
+                      ? 'bg-amber-600 text-white'
+                      : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300'
+                  }`}
+                >
+                  <Icon name={isPrivateMode ? 'unlock' : 'lock'} size={14} /> {isPrivateMode ? 'Sair Cofre' : 'Cofre PIN'}
+                </button>
+                <button
+                  onClick={() => setTourOpen(true)}
+                  className="px-2.5 py-2 rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-300 text-xs font-semibold flex items-center gap-1"
+                >
+                  <Icon name="help-circle" size={14} /> Tour
+                </button>
+                <button
+                  onClick={() =>
+                    commitState((prev) => ({
+                      ...prev,
+                      preferences: { ...prev.preferences, theme: prev.preferences.theme === 'dark' ? 'light' : 'dark' }
+                    }))
+                  }
+                  className="p-2 rounded-xl border border-slate-200 dark:border-zinc-800"
+                >
+                  <Icon name={state.preferences.theme === 'dark' ? 'sun' : 'moon'} size={16} />
+                </button>
+                <button
+                  onClick={() => { setEditingItem(null); setModalOpen(true); }}
+                  className="px-3.5 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold flex items-center gap-1"
+                >
+                  <Icon name="plus" size={16} /> Novo Item
+                </button>
+              </div>
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4 flex flex-wrap items-center justify-between gap-2 py-1.5">
+              <nav className="flex gap-1.5 overflow-x-auto">
+                {[
+                  { id: 'home', label: 'Home', icon: 'brain' },
+                  { id: 'reports', label: 'Relatórios & Histórico', icon: 'bar-chart-2' },
+                  { id: 'settings', label: 'Sync Global & Backup', icon: 'refresh-cw' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => { setActiveTab(tab.id); setActiveTagFilter(null); }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 whitespace-nowrap ${
+                      activeTab === tab.id ? 'bg-slate-900 text-white dark:bg-zinc-100 dark:text-zinc-900' : 'text-slate-600 dark:text-zinc-400'
+                    }`}
+                  >
+                    <Icon name={tab.icon} size={14} /> {tab.label}
+                  </button>
+                ))}
+              </nav>
+
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-zinc-900 p-1 rounded-xl text-xs">
+                {[
+                  { id: 'cards', label: 'Blocos', icon: 'layout-grid' },
+                  { id: 'list', label: 'Lista', icon: 'list' },
+                  { id: 'thumb', label: 'Só Thumb', icon: 'image' },
+                ].map((vm) => (
+                  <button
+                    key={vm.id}
+                    onClick={() =>
+                      commitState((prev) => ({
+                        ...prev,
+                        preferences: { ...prev.preferences, viewMode: vm.id }
+                      }))
+                    }
+                    className={`px-2.5 py-1 rounded-lg flex items-center gap-1 font-medium ${
+                      viewMode === vm.id ? 'bg-white dark:bg-zinc-800 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500'
+                    }`}
+                  >
+                    <Icon name={vm.icon} size={13} /> {vm.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </header>
+
+          <main className="max-w-7xl w-full mx-auto px-4 py-6 flex-1">
+            {activeTagFilter && (
+              <div className="mb-4 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-between text-xs text-indigo-700 dark:text-indigo-300">
+                <span>Mostrando itens atrelados à tag: <strong>#{activeTagFilter}</strong></span>
+                <button onClick={() => setActiveTagFilter(null)} className="font-bold hover:underline">Limpar Filtro</button>
+              </div>
+            )}
+
+            {activeTab === 'home' && (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <aside className="lg:col-span-3 space-y-4">
+                  <FolderTreeSidebar
+                    folders={state.folders}
+                    selectedFolderId={selectedFolderId}
+                    onSelectFolder={setSelectedFolderId}
+                    onCreateFolder={(name, parentId, isPriv) => {
+                      const newF = { id: `f-${Date.now()}`, name, parentId, isPrivate: isPriv };
+                      commitState((prev) => ({ ...prev, folders: [...prev.folders, newF] }));
+                      showToast('Pasta criada!');
+                    }}
+                    onEditFolder={(id, name) => {
+                      commitState((prev) => ({
+                        ...prev,
+                        folders: prev.folders.map((f) => (f.id === id ? { ...f, name } : f))
+                      }));
+                      showToast('Pasta atualizada!');
+                    }}
+                    onDeleteFolder={(id) => {
+                      commitState((prev) => ({
+                        ...prev,
+                        folders: prev.folders.filter((f) => f.id !== id && f.parentId !== id)
+                      }));
+                      showToast('Pasta removida.');
+                    }}
+                    onAddFolderTask={(fId) => {
+                      setSelectedFolderId(fId);
+                      setEditingItem(null);
+                      setModalOpen(true);
+                    }}
+                    onMoveFolderOrder={handleMoveFolderOrder}
+                    isPrivateMode={isPrivateMode}
+                  />
+
+                  <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800 p-3.5 shadow-material">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-2">
+                      Tags (Clique para Filtrar / Arraste)
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {allTags.map((tag) => (
+                        <button
+                          key={tag}
+                          draggable
+                          onDragStart={(e) => e.dataTransfer.setData('text/plain', `tag:${tag}`)}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            const data = e.dataTransfer.getData('text/plain');
+                            if (data && data.startsWith('tag:')) {
+                              const draggedTag = data.split(':')[1];
+                              if (draggedTag !== tag) {
+                                const current = [...allTags];
+                                const fi = current.indexOf(draggedTag);
+                                const ti = current.indexOf(tag);
+                                current.splice(fi, 1);
+                                current.splice(ti, 0, draggedTag);
+                                commitState((prev) => ({
+                                  ...prev,
+                                  preferences: { ...prev.preferences, tagOrder: current }
+                                }));
+                              }
+                            }
+                          }}
+                          onClick={() => setActiveTagFilter(activeTagFilter === tag ? null : tag)}
+                          className={`text-xs px-2.5 py-1 rounded-lg font-medium transition ${
+                            activeTagFilter === tag
+                              ? 'bg-indigo-600 text-white'
+                              : 'bg-slate-100 dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50'
+                          }`}
+                        >
+                          #{tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <PomodoroWidget onNotify={triggerConfiguredAlert} />
+                </aside>
+
+                <section className="lg:col-span-9 space-y-4">
+                  <div
+                    className={
+                      viewMode === 'list'
+                        ? 'space-y-2.5'
+                        : viewMode === 'thumb'
+                        ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3'
+                        : 'grid grid-cols-1 md:grid-cols-2 gap-4'
+                    }
+                  >
+                    {filteredItems.map((item) => (
+                      <BrainItemCard
+                        key={item.id}
+                        item={item}
+                        folderPath={getFolderPath(item.folderId)}
+                        viewMode={viewMode}
+                        onToggleDone={handleToggleDone}
+                        onCompleteAndDelete={handleCompleteAndDelete}
+                        onToggleVault={handleToggleVault}
+                        onEdit={(it) => { setEditingItem(it); setModalOpen(true); }}
+                        onDelete={handleDeleteItem}
+                        onTagClick={(t) => setActiveTagFilter(t)}
+                        draggable={true}
+                        onDragStart={(e) => e.dataTransfer.setData('text/plain', `item:${item.id}`)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const data = e.dataTransfer.getData('text/plain');
+                          if (data && data.startsWith('item:')) {
+                            handleMoveItemOrder(data.split(':')[1], item.id);
+                          }
+                        }}
+                      />
+                    ))}
+                  </div>
+                </section>
+              </div>
+            )}
+
+            {activeTab === 'reports' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-material">
+                    <span className="text-xs text-slate-400 font-semibold">Itens Salvos Ativos</span>
+                    <p className="text-3xl font-bold mt-1">{state.items.length}</p>
+                  </div>
+                  <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-material">
+                    <span className="text-xs text-slate-400 font-semibold">Tarefas Concluídas</span>
+                    <p className="text-3xl font-bold mt-1 text-emerald-600">{state.stats?.completedCount || 0}</p>
+                  </div>
+                  <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-material">
+                    <span className="text-xs text-slate-400 font-semibold">Estudos Realizados</span>
+                    <p className="text-3xl font-bold mt-1 text-indigo-600">{state.stats?.studiesCount || 0}</p>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-material">
+                  <h3 className="text-base font-bold mb-3">Histórico de Atividades Concluídas</h3>
+                  {(state.history || []).length === 0 ? (
+                    <p className="text-xs text-slate-400">Nenhuma atividade registrada no histórico ainda.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {state.history.map((h, i) => (
+                        <div key={i} className="p-3 rounded-xl bg-slate-50 dark:bg-zinc-950 flex items-center justify-between text-xs">
+                          <div>
+                            <span className="font-semibold">{h.title}</span>
+                            <span className="text-slate-400 ml-2">{new Date(h.completedAt).toLocaleString()}</span>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-semibold">
+                            Concluído
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'settings' && (
+              <div className="max-w-xl mx-auto bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-slate-200 dark:border-zinc-800 space-y-6 shadow-material">
+                <div className="pb-5 border-b border-slate-100 dark:border-zinc-800">
+                  <h2 className="text-lg font-bold flex items-center gap-2">
+                    <Icon name="refresh-cw" size={18} className="text-indigo-500" />
+                    Sincronização Global em Tempo Real (PC ↔ Celular)
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Use o mesmo <strong>Código da Sala</strong> no PC e no celular para ver todas as alterações instantaneamente.
+                  </p>
+                  <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={roomInput}
+                      onChange={(e) => setRoomInput(e.target.value)}
+                      placeholder="Ex: mb-meu-cerebro"
+                      className="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-zinc-700 bg-transparent text-sm font-mono"
+                    />
+                    <button
+                      onClick={() => {
+                        const clean = roomInput.trim();
+                        if (clean) {
+                          setRoomCode(clean);
+                          lastPulledAtRef.current = 0;
+                          pullFromCloud();
+                          syncToCloud(state);
+                          showToast('Sala conectada e sincronizada!');
+                        }
+                      }}
+                      className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold"
+                    >
+                      Conectar & Sincronizar
+                    </button>
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-2 flex items-center justify-between">
+                    <span>Status: <strong>{syncStatus}</strong></span>
+                    {lastSyncTime && <span>Última sync: {lastSyncTime}</span>}
+                  </div>
+                </div>
+
+                <div className="pb-5 border-b border-slate-100 dark:border-zinc-800">
+                  <h3 className="text-sm font-bold mb-2">PIN do Cofre Privado</h3>
+                  <button
+                    onClick={() => setPinModalOpen(true)}
+                    className="px-4 py-2 rounded-xl bg-amber-600 text-white text-xs font-semibold"
+                  >
+                    {state.privatePin ? 'Alterar / Desbloquear PIN' : 'Configurar PIN do Cofre'}
+                  </button>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-bold mb-1">Backup & Restauração (Exportar / Importar JSON)</h3>
+                  <p className="text-xs text-slate-500 mb-3">
+                    Salve seus dados antes de subir novos arquivos para o GitHub/Netlify e importe quando quiser.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
+                        const dlAnchorElem = document.createElement('a');
+                        dlAnchorElem.setAttribute("href", dataStr);
+                        dlAnchorElem.setAttribute("download", `megabrain_backup_${new Date().toISOString().slice(0, 10)}.json`);
+                        dlAnchorElem.click();
+                      }}
+                      className="px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-semibold flex items-center gap-1.5"
+                    >
+                      <Icon name="download" size={16} /> Exportar Backup (JSON)
+                    </button>
+                    <label className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-zinc-800">
+                      <Icon name="upload" size={16} /> Importar Backup
+                      <input
+                        type="file"
+                        accept=".json"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const reader = new FileReader();
+                          reader.onload = (evt) => {
+                            try {
+                              const parsed = JSON.parse(evt.target.result);
+                              if (parsed && parsed.items && parsed.folders) {
+                                commitState(parsed);
+                                showToast('Backup importado com sucesso!');
+                              }
+                            } catch (err) {
+                              alert('Erro ao ler arquivo de backup.');
+                            }
+                          };
+                          reader.readAsText(file);
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+          </main>
+
+          <ItemFormModal
+            isOpen={modalOpen}
+            onClose={() => { setModalOpen(false); setEditingItem(null); }}
+            onSave={handleSaveItem}
+            folders={state.folders}
+            initialItem={editingItem}
+            isPrivateMode={isPrivateMode}
+            defaultFolderId={selectedFolderId}
+          />
+
+          <PinModal
+            isOpen={pinModalOpen}
+            onClose={() => { setPinModalOpen(false); setPendingVaultItem(null); }}
+            currentPin={state.privatePin}
+            onSetPin={(newPin) => commitState((prev) => ({ ...prev, privatePin: newPin }))}
+            onUnlock={() => {
+              setIsPrivateUnlocked(true);
+              if (pendingVaultItem) {
+                applyVaultToggle(pendingVaultItem);
+                setPendingVaultItem(null);
+              } else {
+                setIsPrivateMode(true);
+              }
+            }}
+          />
+
+          <WednesdayReviewModal
+            isOpen={wednesdayOpen}
+            onClose={() => setWednesdayOpen(false)}
+            items={state.items}
+            onConfirmSeen={(ids) => {
+              commitState((prev) => ({
+                ...prev,
+                items: prev.items.map((it) => (ids.includes(it.id) ? { ...it, seenConfirmed: true } : it))
+              }));
+              showToast('Itens marcados como vistos!');
+            }}
+            onSnoozeItems={(ids, dateStr) => {
+              commitState((prev) => ({
+                ...prev,
+                items: prev.items.map((it) => (ids.includes(it.id) ? { ...it, snoozeUntil: dateStr } : it))
+              }));
+              showToast(`Adiado para ${dateStr}!`);
+            }}
+          />
+
+          <TourModal isOpen={tourOpen} onClose={() => setTourOpen(false)} />
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<MegaBrainApp />);
+  </script>
+</body>
+</html>

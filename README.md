@@ -1,0 +1,1 @@
+# Mega Brain v7 — Múltiplos áudios, múltiplas notas livres, câmera/fotos e cofre pós-criação.
