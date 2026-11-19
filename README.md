@@ -1,1 +1,0 @@
-# Mega Brain v5 Corrigido — Base v4 com Sincronização em Tempo Real entre PC e Celular.
